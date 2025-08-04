@@ -1,0 +1,3 @@
+Endpoint: t0t1.fra2.idrivee2-58.com
+Access Key ID: 9uh7KIBy8EML3OOhddG4
+Secret Access Key: dMsBvOVXPvAjmNJWILgiMACsAC0BJl2OJhXw3ajF
