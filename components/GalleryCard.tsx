@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Gallery } from "@/types/gallery";
-import { formatNumber } from "@/lib/utils";
+import { config } from "@/lib/config";
 import { useState } from "react";
 
 interface GalleryCardProps {
@@ -14,9 +14,9 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // Use thumbnail from MongoDB or fallback
+  // Use thumbnail from MongoDB or fallback to your own server
   const coverUrl = gallery.thumbnail;
-  const fallbackUrl = `https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Gallery+${gallery.id}`;
+  const fallbackUrl = config.FALLBACK_URLS.ERROR;
 
   return (
     <Link href={`/g/${gallery.id}`} className="group block">

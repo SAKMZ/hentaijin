@@ -164,9 +164,8 @@ function getMockGalleries(params?: SearchParams): GalleryListResponse {
 function getMockGalleryDetail(id: string): GalleryDetail {
   // Generate mock image URLs using your own server
   const mockImageCount = (parseInt(id) % 30) + 10; // 10-40 images
-  const images = Array.from(
-    { length: mockImageCount },
-    (_, index) => generateImageUrl(id, index + 1)
+  const images = Array.from({ length: mockImageCount }, (_, index) =>
+    generateImageUrl(id, index + 1)
   );
 
   return {
@@ -193,17 +192,20 @@ export function generateImageUrl(
   format = "jpg"
 ): string {
   const paddedIndex = imageIndex.toString().padStart(2, "0");
-  const endpoint = config.CDN_ENDPOINTS.GALLERY_IMAGE
-    .replace('{galleryId}', galleryId)
-    .replace('{paddedIndex}', paddedIndex)
-    .replace('{format}', format);
+  const endpoint = config.CDN_ENDPOINTS.GALLERY_IMAGE.replace(
+    "{galleryId}",
+    galleryId
+  )
+    .replace("{paddedIndex}", paddedIndex)
+    .replace("{format}", format);
   return `${config.CDN_BASE_URL}${endpoint}`;
 }
 
 // Utility to generate CDN cover URL (first image)
 export function generateCoverUrl(galleryId: string, format = "jpg"): string {
-  const endpoint = config.CDN_ENDPOINTS.GALLERY_COVER
-    .replace('{galleryId}', galleryId)
-    .replace('{format}', format);
+  const endpoint = config.CDN_ENDPOINTS.GALLERY_COVER.replace(
+    "{galleryId}",
+    galleryId
+  ).replace("{format}", format);
   return `${config.CDN_BASE_URL}${endpoint}`;
 }
