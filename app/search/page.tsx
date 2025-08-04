@@ -4,9 +4,9 @@ import { SearchBar } from "@/components/SearchBar";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { generateMockGalleries } from "@/lib/mockData";
+import { searchGalleries } from "@/lib/api";
 import { config } from "@/lib/config";
-import { SearchResponse, SearchFilters } from "@/types/gallery";
+import { GalleryListResponse, SearchParams } from "@/types/gallery";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -15,92 +15,40 @@ export const metadata: Metadata = {
 
 interface SearchPageProps {
   searchParams: {
-    q?: string;
+    search?: string;
     page?: string;
-    language?: string;
-    category?: string;
-    artist?: string;
   };
 }
 
-// Mock API call function
-async function searchGalleries(
-  filters: SearchFilters,
-  page: number = 1
-): Promise<SearchResponse> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  let galleries = generateMockGalleries(200);
-
-  // Apply filters
-  if (filters.query) {
-    const query = filters.query.toLowerCase();
-    galleries = galleries.filter(
-      (g) =>
-        g.title.toLowerCase().includes(query) ||
-        g.artist.toLowerCase().includes(query) ||
-        g.tags.some((tag) => tag.toLowerCase().includes(query))
-    );
-  }
-
-  if (filters.language) {
-    galleries = galleries.filter((g) => g.language === filters.language);
-  }
-
-  if (filters.category) {
-    galleries = galleries.filter((g) => g.category === filters.category);
-  }
-
-  if (filters.artist) {
-    galleries = galleries.filter((g) =>
-      g.artist.toLowerCase().includes(filters.artist!.toLowerCase())
-    );
-  }
-
-  // Pagination
-  const startIndex = (page - 1) * config.GALLERIES_PER_PAGE;
-  const endIndex = startIndex + config.GALLERIES_PER_PAGE;
-  const paginatedGalleries = galleries.slice(startIndex, endIndex);
-
-  return {
-    galleries: paginatedGalleries,
-    pagination: {
-      currentPage: page,
-      totalPages: Math.ceil(galleries.length / config.GALLERIES_PER_PAGE),
-      totalItems: galleries.length,
-      hasNext: endIndex < galleries.length,
-      hasPrev: page > 1,
-    },
-    filters,
-  };
+// Search galleries using API
+async function performSearch(searchTerm: string, page: number = 1): Promise<GalleryListResponse> {
+  return await searchGalleries(searchTerm, page);
 }
 
 async function SearchResults({
-  filters,
+  searchTerm,
   page,
 }: {
-  filters: SearchFilters;
+  searchTerm: string;
   page: number;
 }) {
-  const { galleries, pagination } = await searchGalleries(filters, page);
+  const { galleries, pagination } = await performSearch(searchTerm, page);
 
-  if (galleries.length === 0) {
+  if (!galleries || galleries.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-6xl mb-4">🔍</div>
-        <h3 className="text-xl font-semibold text-foreground mb-2">
+        <h3 className="text-xl font-semibold text-white mb-2">
           No galleries found
         </h3>
-        <p className="text-muted-foreground mb-4">
-          Try adjusting your search filters or search terms
+        <p className="text-gray-400 mb-4">
+          Try different search terms or check your spelling
         </p>
-        <div className="text-sm text-muted-foreground">
-          {filters.query && <div>Query: "{filters.query}"</div>}
-          {filters.language && <div>Language: {filters.language}</div>}
-          {filters.category && <div>Category: {filters.category}</div>}
-          {filters.artist && <div>Artist: {filters.artist}</div>}
-        </div>
+        {searchTerm && (
+          <div className="text-sm text-gray-500">
+            Searched for: "{searchTerm}"
+          </div>
+        )}
       </div>
     );
   }
@@ -110,44 +58,26 @@ async function SearchResults({
       {/* Results Info */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Search Results</h2>
-          <p className="text-muted-foreground">
-            Found {pagination.totalItems} galleries
-            {filters.query && ` for "${filters.query}"`}
+          <h2 className="text-2xl font-bold text-white">Search Results</h2>
+          <p className="text-gray-400">
+            Found {pagination?.totalItems || galleries.length} galleries
+            {searchTerm && ` for "${searchTerm}"`}
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Page {pagination.currentPage} of {pagination.totalPages}
-        </div>
+        {pagination && (
+          <div className="text-sm text-gray-400">
+            Page {pagination.currentPage} of {pagination.totalPages}
+          </div>
+        )}
       </div>
 
-      {/* Active Filters */}
-      {(filters.query ||
-        filters.language ||
-        filters.category ||
-        filters.artist) && (
+      {/* Active Search */}
+      {searchTerm && (
         <div className="flex flex-wrap gap-2">
-          <span className="text-sm text-muted-foreground">Active filters:</span>
-          {filters.query && (
-            <span className="inline-flex items-center px-2 py-1 bg-primary text-primary-foreground rounded text-sm">
-              Query: {filters.query}
-            </span>
-          )}
-          {filters.language && (
-            <span className="inline-flex items-center px-2 py-1 bg-primary text-primary-foreground rounded text-sm">
-              Language: {filters.language}
-            </span>
-          )}
-          {filters.category && (
-            <span className="inline-flex items-center px-2 py-1 bg-primary text-primary-foreground rounded text-sm">
-              Category: {filters.category}
-            </span>
-          )}
-          {filters.artist && (
-            <span className="inline-flex items-center px-2 py-1 bg-primary text-primary-foreground rounded text-sm">
-              Artist: {filters.artist}
-            </span>
-          )}
+          <span className="text-sm text-gray-400">Search:</span>
+          <span className="inline-flex items-center px-2 py-1 bg-pink-600 text-white rounded text-sm">
+            {searchTerm}
+          </span>
         </div>
       )}
 
@@ -159,51 +89,73 @@ async function SearchResults({
       </div>
 
       {/* Pagination */}
-      <Pagination
-        pagination={pagination}
-        baseUrl="/search"
-        searchParams={
-          new URLSearchParams({
-            ...(filters.query && { q: filters.query }),
-            ...(filters.language && { language: filters.language }),
-            ...(filters.category && { category: filters.category }),
-            ...(filters.artist && { artist: filters.artist }),
-            page: page.toString(),
-          })
-        }
-      />
+      {pagination && (
+        <Pagination
+          pagination={pagination}
+          baseUrl="/search"
+          searchParams={
+            new URLSearchParams({
+              ...(searchTerm && { search: searchTerm }),
+              page: page.toString(),
+            })
+          }
+        />
+      )}
     </div>
   );
 }
 
 export default function SearchPage({ searchParams }: SearchPageProps) {
   const page = parseInt(searchParams.page || "1", 10);
-  const filters: SearchFilters = {
-    query: searchParams.q || undefined,
-    language: searchParams.language || undefined,
-    category: searchParams.category || undefined,
-    artist: searchParams.artist || undefined,
-  };
+  const searchTerm = searchParams.search || '';
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-          Search <span className="text-primary">Galleries</span>
+        <h1 className="text-4xl md:text-5xl font-bold text-white">
+          Search <span className="text-pink-500">Galleries</span>
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Find your favorite hentai galleries by title, artist, tags, and more
+        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+          Find your favorite hentai galleries by title, tags, and more
         </p>
       </div>
 
       {/* Search Bar */}
-      <SearchBar initialFilters={filters} />
+      <div className="w-full max-w-4xl mx-auto">
+        <form method="GET" action="/search" className="space-y-4">
+          <div className="relative">
+            <input
+              type="text"
+              name="search"
+              defaultValue={searchTerm}
+              placeholder="Search galleries, tags, titles..."
+              className="w-full px-4 py-3 text-white bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors text-sm font-medium"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Search Results */}
-      <Suspense fallback={<GalleryGridSkeleton />}>
-        <SearchResults filters={filters} page={page} />
-      </Suspense>
+      {searchTerm ? (
+        <Suspense fallback={<GalleryGridSkeleton />}>
+          <SearchResults searchTerm={searchTerm} page={page} />
+        </Suspense>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">🔍</div>
+          <h3 className="text-xl font-semibold text-white mb-2">Start your search</h3>
+          <p className="text-gray-400">
+            Enter a search term to find galleries
+          </p>
+        </div>
+      )}
     </div>
   );
 }

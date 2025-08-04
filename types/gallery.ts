@@ -1,17 +1,11 @@
+// MongoDB Gallery structure
 export interface Gallery {
   id: string;
   title: string;
-  artist: string;
-  language: string;
   tags: string[];
-  category: string;
-  coverImage: string;
-  totalPages: number;
-  uploadDate: string;
-  views: number;
-  // New tokenized image system
-  token?: string; // Placeholder token for dynamic URLs
-  imageFormat?: 'webp' | 'jpg' | 'png'; // Default: webp
+  language: string;
+  totalImages: number;
+  thumbnail: string; // Full CDN URL like "cdn.domain.com/12345/cover.webp"
 }
 
 export interface ImageLoadState {
@@ -46,17 +40,20 @@ export interface SearchResponse extends GalleryResponse {
   filters: SearchFilters;
 }
 
-// New interfaces for tokenized image system
-export interface ImageTokenConfig {
-  galleryId: string;
-  token: string;
-  imageIndex: number;
-  format?: 'webp' | 'jpg' | 'png';
+// API Response for individual gallery with images
+export interface GalleryDetail {
+  id: string;
+  images: string[]; // Full CDN URLs like ["cdn.domain.com/12345/1.webp", ...]
 }
 
-export interface ImageViewerProps {
-  gallery: Gallery;
-  currentIndex: number;
-  onImageChange: (index: number) => void;
-  onClose: () => void;
+// API Request/Response interfaces
+export interface GalleryListResponse {
+  galleries: Gallery[];
+  pagination?: PaginationInfo;
+}
+
+export interface SearchParams {
+  search?: string;
+  page?: number;
+  limit?: number;
 }

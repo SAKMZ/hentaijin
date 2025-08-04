@@ -3,29 +3,29 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Gallery, ImageTokenConfig } from "@/types/gallery";
-import { generateMockGalleries } from "@/lib/mockData";
-import { formatNumber, formatDate, generateImageUrl } from "@/lib/utils";
+import { Gallery, GalleryDetail } from "@/types/gallery";
+import { fetchGalleries, fetchGalleryDetail } from "@/lib/api";
+import { formatNumber, formatDate } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
-import GalleryImage from "@/components/ui/GalleryImage";
 
 interface GalleryPageProps {
   params: { id: string };
 }
 
-// Mock API call function
-async function fetchGallery(id: string): Promise<Gallery | null> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  const galleries = generateMockGalleries(100);
-  return galleries.find((g) => g.id === id) || null;
+// Fetch gallery metadata for SEO
+async function fetchGalleryMetadata(id: string): Promise<Gallery | null> {
+  try {
+    const { galleries } = await fetchGalleries({ search: id });
+    return galleries.find(g => g.id === id) || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({
   params,
 }: GalleryPageProps): Promise<Metadata> {
-  const gallery = await fetchGallery(params.id);
+  const gallery = await fetchGalleryMetadata(params.id);
 
   if (!gallery) {
     return {
@@ -35,53 +35,53 @@ export async function generateMetadata({
 
   return {
     title: gallery.title,
-    description: `${gallery.title} by ${gallery.artist} - ${gallery.totalPages} pages`,
+    description: `${gallery.title} - ${gallery.totalImages} images - ${gallery.language}`,
     openGraph: {
       title: gallery.title,
-      description: `${gallery.title} by ${gallery.artist}`,
-      images: [{ url: gallery.coverImage }],
+      description: `${gallery.title} - ${gallery.totalImages} images`,
+      images: [{ url: gallery.thumbnail }],
     },
   };
 }
 
-// Gallery image wrapper with token config
-function TokenizedGalleryImage({
-  gallery,
+// Simple gallery image component
+function SimpleGalleryImage({
+  src,
+  alt,
   index,
 }: {
-  gallery: Gallery;
+  src: string;
+  alt: string;
   index: number;
 }) {
-  if (!gallery.token) {
-    return (
-      <div className="relative bg-gray-900 rounded-lg overflow-hidden shadow-lg aspect-[2/3] flex items-center justify-center">
-        <div className="text-red-400">No token available</div>
-      </div>
-    );
-  }
-
-  const tokenConfig: ImageTokenConfig = {
-    galleryId: gallery.id,
-    token: gallery.token,
-    imageIndex: index,
-    format: gallery.imageFormat || 'webp',
-  };
-
   return (
-    <GalleryImage
-      tokenConfig={tokenConfig}
-      alt={gallery.title}
-      className="aspect-[2/3]"
-      showPageNumber={true}
-      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-    />
+    <div className="relative bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+      <Image
+        src={src}
+        alt={`${alt} - Image ${index + 1}`}
+        width={800}
+        height={1200}
+        className="w-full h-auto object-contain"
+        loading="lazy"
+        placeholder="blur"
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      />
+      {/* Page Number Overlay */}
+      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
+        {index + 1}
+      </div>
+    </div>
   );
 }
 
 async function GalleryContent({ id }: { id: string }) {
-  const gallery = await fetchGallery(id);
+  // Fetch both gallery metadata and image list
+  const [galleryMetadata, galleryImages] = await Promise.all([
+    fetchGalleryMetadata(id),
+    fetchGalleryDetail(id)
+  ]);
 
-  if (!gallery) {
+  if (!galleryMetadata || !galleryImages) {
     notFound();
   }
 
@@ -92,10 +92,10 @@ async function GalleryContent({ id }: { id: string }) {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Cover Image */}
           <div className="flex-shrink-0">
-            <div className="relative w-48 aspect-[3/4] bg-muted rounded-lg overflow-hidden shadow-lg mx-auto lg:mx-0">
+            <div className="relative w-48 aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden shadow-lg mx-auto lg:mx-0">
               <Image
-                src={gallery.coverImage}
-                alt={gallery.title}
+                src={galleryMetadata.thumbnail}
+                alt={galleryMetadata.title}
                 fill
                 className="object-cover"
                 priority
@@ -106,59 +106,41 @@ async function GalleryContent({ id }: { id: string }) {
           {/* Gallery Info */}
           <div className="flex-1 space-y-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                {gallery.title}
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                {galleryMetadata.title}
               </h1>
-              <Link
-                href={`/search?artist=${encodeURIComponent(gallery.artist)}`}
-                className="text-xl text-primary hover:text-primary/80 transition-colors"
-              >
-                by {gallery.artist}
-              </Link>
+              <p className="text-xl text-gray-400 capitalize">
+                {galleryMetadata.language}
+              </p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div>
-                <div className="text-muted-foreground">Pages</div>
-                <div className="font-semibold">{gallery.totalPages}</div>
+                <div className="text-gray-400">Images</div>
+                <div className="font-semibold text-white">{galleryMetadata.totalImages}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Views</div>
-                <div className="font-semibold">
-                  {formatNumber(gallery.views)}
-                </div>
+                <div className="text-gray-400">Language</div>
+                <div className="font-semibold text-white capitalize">{galleryMetadata.language}</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Language</div>
-                <div className="font-semibold">{gallery.language}</div>
+                <div className="text-gray-400">ID</div>
+                <div className="font-semibold text-white">{galleryMetadata.id}</div>
               </div>
-              <div>
-                <div className="text-muted-foreground">Uploaded</div>
-                <div className="font-semibold">
-                  {formatDate(gallery.uploadDate)}
-                </div>
-              </div>
-            </div>
-
-            {/* Category */}
-            <div>
-              <span className="inline-flex items-center px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium">
-                {gallery.category}
-              </span>
             </div>
 
             {/* Tags */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">
+              <div className="text-sm font-medium text-gray-400">
                 Tags:
               </div>
               <div className="flex flex-wrap gap-2">
-                {gallery.tags.map((tag) => (
+                {galleryMetadata.tags.map((tag) => (
                   <Link
                     key={tag}
-                    href={`/tag/${encodeURIComponent(tag)}`}
-                    className="inline-flex items-center px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm hover:bg-secondary/80 transition-colors"
+                    href={`/search?search=${encodeURIComponent(tag)}`}
+                    className="inline-flex items-center px-3 py-1 bg-gray-700 text-gray-200 rounded-full text-sm hover:bg-gray-600 transition-colors"
                   >
                     {tag}
                   </Link>
@@ -168,11 +150,11 @@ async function GalleryContent({ id }: { id: string }) {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-4 pt-4">
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium">
+              <button className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">
                 Favorite
               </button>
-              <button className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium">
-                Download
+              <button className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">
+                Share
               </button>
             </div>
           </div>
@@ -182,19 +164,20 @@ async function GalleryContent({ id }: { id: string }) {
       {/* Gallery Images */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground">
-            Gallery Images ({gallery.totalPages} pages)
+          <h2 className="text-2xl font-bold text-white">
+            Gallery Images ({galleryImages.images.length} images)
           </h2>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-400">
             Click images to view full size
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: gallery.totalPages }, (_, index) => (
-            <TokenizedGalleryImage
+          {galleryImages.images.map((imageUrl, index) => (
+            <SimpleGalleryImage
               key={index}
-              gallery={gallery}
+              src={imageUrl}
+              alt={galleryMetadata.title}
               index={index}
             />
           ))}
@@ -203,9 +186,9 @@ async function GalleryContent({ id }: { id: string }) {
 
       {/* Related Galleries */}
       <div className="space-y-4">
-        <h3 className="text-xl font-bold text-foreground">Related Galleries</h3>
-        <p className="text-muted-foreground">
-          More galleries by {gallery.artist} or with similar tags coming soon...
+        <h3 className="text-xl font-bold text-white">Related Galleries</h3>
+        <p className="text-gray-400">
+          More galleries with similar tags coming soon...
         </p>
       </div>
     </div>

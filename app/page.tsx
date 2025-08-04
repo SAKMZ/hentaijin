@@ -3,9 +3,9 @@ import { Metadata } from "next";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { generateMockGalleries } from "@/lib/mockData";
+import { fetchGalleries } from "@/lib/api";
 import { config } from "@/lib/config";
-import { GalleryResponse } from "@/types/gallery";
+import { GalleryListResponse, SearchParams } from "@/types/gallery";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -16,31 +16,30 @@ interface HomePageProps {
   searchParams: { page?: string };
 }
 
-// Mock API call function
-async function fetchGalleries(page: number = 1): Promise<GalleryResponse> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const totalGalleries = 500; // Mock total
-  const galleries = generateMockGalleries(totalGalleries);
-  const startIndex = (page - 1) * config.GALLERIES_PER_PAGE;
-  const endIndex = startIndex + config.GALLERIES_PER_PAGE;
-  const paginatedGalleries = galleries.slice(startIndex, endIndex);
-
-  return {
-    galleries: paginatedGalleries,
-    pagination: {
-      currentPage: page,
-      totalPages: Math.ceil(totalGalleries / config.GALLERIES_PER_PAGE),
-      totalItems: totalGalleries,
-      hasNext: endIndex < totalGalleries,
-      hasPrev: page > 1,
-    },
+// Fetch galleries from API
+async function fetchGalleriesData(page: number = 1): Promise<GalleryListResponse> {
+  const params: SearchParams = {
+    page,
+    limit: config.GALLERIES_PER_PAGE,
   };
+  
+  return await fetchGalleries(params);
 }
 
 async function GalleryGrid({ page }: { page: number }) {
-  const { galleries, pagination } = await fetchGalleries(page);
+  const { galleries, pagination } = await fetchGalleriesData(page);
+
+  if (!galleries || galleries.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-4">📚</div>
+        <h3 className="text-xl font-semibold text-white mb-2">No galleries found</h3>
+        <p className="text-gray-400">
+          Check your API connection or try again later.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -52,11 +51,13 @@ async function GalleryGrid({ page }: { page: number }) {
       </div>
 
       {/* Pagination */}
-      <Pagination
-        pagination={pagination}
-        baseUrl="/"
-        searchParams={new URLSearchParams({ page: page.toString() })}
-      />
+      {pagination && (
+        <Pagination
+          pagination={pagination}
+          baseUrl="/"
+          searchParams={new URLSearchParams({ page: page.toString() })}
+        />
+      )}
     </>
   );
 }
@@ -79,21 +80,21 @@ export default function HomePage({ searchParams }: HomePageProps) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <div className="bg-card p-4 rounded-lg">
-          <div className="text-2xl font-bold text-primary">500+</div>
-          <div className="text-sm text-muted-foreground">Galleries</div>
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-pink-500">∞</div>
+          <div className="text-sm text-gray-400">Galleries</div>
         </div>
-        <div className="bg-card p-4 rounded-lg">
-          <div className="text-2xl font-bold text-primary">50+</div>
-          <div className="text-sm text-muted-foreground">Artists</div>
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-pink-500">✨</div>
+          <div className="text-sm text-gray-400">HD Quality</div>
         </div>
-        <div className="bg-card p-4 rounded-lg">
-          <div className="text-2xl font-bold text-primary">100+</div>
-          <div className="text-sm text-muted-foreground">Tags</div>
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-pink-500">🏷️</div>
+          <div className="text-sm text-gray-400">Tagged</div>
         </div>
-        <div className="bg-card p-4 rounded-lg">
-          <div className="text-2xl font-bold text-primary">4</div>
-          <div className="text-sm text-muted-foreground">Languages</div>
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-pink-500">🌐</div>
+          <div className="text-sm text-gray-400">Multi-Lang</div>
         </div>
       </div>
 

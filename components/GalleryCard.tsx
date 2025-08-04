@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Gallery } from "@/types/gallery";
-import { formatNumber, generateCoverUrl, generateDummyToken } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 import { useState } from "react";
 
 interface GalleryCardProps {
@@ -14,12 +14,8 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   
-  // Generate cover URL with token
-  const coverUrl = gallery.coverImage || (gallery.token 
-    ? generateCoverUrl(gallery.id, gallery.token, gallery.imageFormat || 'webp')
-    : generateCoverUrl(gallery.id, generateDummyToken(gallery.id), gallery.imageFormat || 'webp')
-  );
-  
+  // Use thumbnail from MongoDB or fallback
+  const coverUrl = gallery.thumbnail;
   const fallbackUrl = `https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Gallery+${gallery.id}`;
 
   return (
@@ -69,33 +65,25 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             </span>
           </div>
           
-          {/* Views Badge */}
+          {/* Image Count Badge */}
           <div className="absolute top-2 right-2">
             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-black/70 text-white rounded-full">
-              {formatNumber(gallery.views)}
+              {gallery.totalImages}
             </span>
           </div>
           
-          {/* Format Badge */}
-          {gallery.imageFormat && gallery.imageFormat !== 'webp' && (
-            <div className="absolute bottom-2 left-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-blue-600/80 text-white rounded uppercase">
-                {gallery.imageFormat}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Content */}
         <div className="p-4">
           {/* Title */}
-          <h3 className="font-semibold text-card-foreground text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2 group-hover:text-pink-400 transition-colors">
             {gallery.title}
           </h3>
 
-          {/* Artist */}
-          <p className="text-muted-foreground text-xs mb-2 truncate">
-            by {gallery.artist}
+          {/* Language */}
+          <p className="text-gray-400 text-xs mb-2 capitalize">
+            {gallery.language}
           </p>
 
           {/* Tags */}
@@ -103,21 +91,21 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             {gallery.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full"
+                className="inline-flex items-center px-2 py-1 text-xs bg-gray-700 text-gray-200 rounded-full"
               >
                 {tag}
               </span>
             ))}
             {gallery.tags.length > 3 && (
-              <span className="inline-flex items-center px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full">
+              <span className="inline-flex items-center px-2 py-1 text-xs bg-gray-700 text-gray-200 rounded-full">
                 +{gallery.tags.length - 3}
               </span>
             )}
           </div>
 
-          {/* Page Count */}
-          <p className="text-muted-foreground text-xs">
-            {gallery.totalPages} pages
+          {/* Image Count */}
+          <p className="text-gray-400 text-xs">
+            {gallery.totalImages} images
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 export const config = {
   API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
-  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.hetaijin.com",
-  SITE_NAME: "Hetaijin",
+  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.domain.com",
+  SITE_NAME: "hentaijin",
   SITE_DESCRIPTION: "Modern hentai gallery site",
   GALLERIES_PER_PAGE: 20,
   TAGS: {
@@ -20,12 +20,10 @@ export const config = {
     PLACEHOLDER_COLOR: '#1a1a1a',
   },
   
-  // Tokenized URL structure
+  // Simple CDN URL structure - cdn.domain.com/12345/1.webp
   CDN_ENDPOINTS: {
-    // Pattern: https://cdn.mysite.com/images/[gallery_id]/[token]/[image_index].webp
-    GALLERY_IMAGE: '/images/{galleryId}/{token}/{imageIndex}.{format}',
-    GALLERY_COVER: '/covers/{galleryId}/{token}/cover.{format}',
-    GALLERY_THUMBNAIL: '/thumbs/{galleryId}/{token}/{imageIndex}.{format}',
+    GALLERY_IMAGE: '/{galleryId}/{imageIndex}.{format}',
+    GALLERY_COVER: '/{galleryId}/cover.{format}',
   },
   
   // Fallback URLs for development/testing
