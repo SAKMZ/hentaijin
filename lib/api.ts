@@ -162,14 +162,11 @@ function getMockGalleries(params?: SearchParams): GalleryListResponse {
 }
 
 function getMockGalleryDetail(id: string): GalleryDetail {
-  // Generate mock image URLs for the gallery
+  // Generate mock image URLs using your own server
   const mockImageCount = (parseInt(id) % 30) + 10; // 10-40 images
   const images = Array.from(
     { length: mockImageCount },
-    (_, index) =>
-      `https://via.placeholder.com/800x1200/${Math.abs(
-        hashCode(id + index)
-      )}a/ffffff?text=Gallery+${id}+Page+${index + 1}`
+    (_, index) => generateImageUrl(id, index + 1)
   );
 
   return {

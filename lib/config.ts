@@ -27,13 +27,10 @@ export const config = {
     GALLERY_COVER: "/api/{galleryId}/01.{format}", // First image as cover
   },
 
-  // Fallback URLs for development/testing
+  // Fallback URLs - use your own server instead of external placeholders
   FALLBACK_URLS: {
-    PLACEHOLDER:
-      "https://via.placeholder.com/800x1200/1a1a1a/ffffff?text=Loading...",
-    ERROR:
-      "https://via.placeholder.com/800x1200/2a2a2a/ff6b6b?text=Image+Error",
-    COVER_PLACEHOLDER:
-      "https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Cover",
+    PLACEHOLDER: "http://128.140.78.75:3000/api/100/01.jpg",
+    ERROR: "http://128.140.78.75:3000/api/100/01.jpg", 
+    COVER_PLACEHOLDER: "http://128.140.78.75:3000/api/100/01.jpg",
   },
 } as const;
