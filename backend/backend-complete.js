@@ -222,11 +222,14 @@ app.get("/api/:galleryId/:imageName", async (req, res) => {
   const { galleryId, imageName } = req.params;
 
   try {
-    // Step 1: Check if gallery exists in DB (skip if DB not connected)
+    // Step 1: Check if gallery exists in DB (TEMPORARILY DISABLED FOR TESTING)
     if (galleries) {
       const found = await galleries.findOne({ hentai_id: galleryId });
       if (!found) {
-        return res.status(404).send("Gallery not found in database");
+        console.log(`⚠️  Gallery ${galleryId} not found in database, but serving image anyway (testing mode)`);
+        // Temporarily disabled: return res.status(404).send("Gallery not found in database");
+      } else {
+        console.log(`✅ Gallery ${galleryId} found in database`);
       }
     } else {
       console.log("⚠️  Serving image without DB check (MongoDB not connected)");
