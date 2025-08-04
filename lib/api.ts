@@ -5,7 +5,6 @@ import {
   SearchParams,
 } from "@/types/gallery";
 import { config } from "./config";
-import { connectToDatabase, initializeSampleData } from "./mongodb";
 
 // Error handling wrapper
 async function apiRequest<T>(url: string): Promise<T> {
@@ -34,31 +33,21 @@ async function apiRequest<T>(url: string): Promise<T> {
   }
 }
 
-// Fetch main database with all galleries from MongoDB
+// Fetch galleries from API route
 async function fetchAllGalleries(): Promise<Gallery[]> {
   try {
-    const { collection } = await connectToDatabase();
+    const baseUrl = "";
 
-    // Initialize sample data if collection is empty
-    await initializeSampleData();
+    const response = await fetch(`${baseUrl}/api/galleries`);
 
-    const galleries = await collection.find({}).toArray();
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
 
-    // Transform MongoDB documents to Gallery objects
-    return galleries.map((gallery: any) => ({
-      ...gallery,
-      id: gallery._id?.toString() || gallery.id,
-      hentai_id:
-        gallery.hentai_id || gallery.id || gallery._id?.toString() || "",
-      thumbnail:
-        gallery.thumbnail ||
-        `https://cdn.hentaijin.com/${gallery.hentai_id || gallery.id}/01.webp`,
-    }));
+    const data = await response.json();
+    return data.galleries || [];
   } catch (error) {
-    console.warn(
-      "Failed to fetch galleries from MongoDB, using fallback:",
-      error
-    );
+    console.warn("Failed to fetch galleries from API, using fallback:", error);
     return getMockGalleries();
   }
 }
@@ -67,109 +56,57 @@ async function fetchAllGalleries(): Promise<Gallery[]> {
 export async function fetchGalleries(
   params?: SearchParams
 ): Promise<GalleryListResponse> {
-  const allGalleries = await fetchAllGalleries();
-  let filteredGalleries = [...allGalleries];
+  try {
+    const baseUrl = "";
 
-  // Apply search filter
-  if (params?.search) {
-    const searchTerm = params.search.toLowerCase();
-    filteredGalleries = filteredGalleries.filter(
-      (gallery) =>
-        gallery.title.toLowerCase().includes(searchTerm) ||
-        gallery.tags.some((tag) => tag.toLowerCase().includes(searchTerm)) ||
-        gallery.artists.some((artist) =>
-          artist.toLowerCase().includes(searchTerm)
-        ) ||
-        gallery.categories.some((category) =>
-          category.toLowerCase().includes(searchTerm)
-        ) ||
-        gallery.characters?.some((character) =>
-          character.toLowerCase().includes(searchTerm)
-        )
-    );
-  }
+    // Build query parameters
+    const queryParams = new URLSearchParams();
 
-  // Apply category filter
-  if (params?.categories && params.categories.length > 0) {
-    filteredGalleries = filteredGalleries.filter((gallery) =>
-      params.categories!.some(
-        (category) => gallery.categories.indexOf(category) !== -1
-      )
-    );
-  }
-
-  // Apply language filter
-  if (params?.languages && params.languages.length > 0) {
-    filteredGalleries = filteredGalleries.filter((gallery) =>
-      params.languages!.some(
-        (language) => gallery.languages.indexOf(language) !== -1
-      )
-    );
-  }
-
-  // Apply tags filter
-  if (params?.tags && params.tags.length > 0) {
-    filteredGalleries = filteredGalleries.filter((gallery) =>
-      params.tags!.some((tag) => gallery.tags.indexOf(tag) !== -1)
-    );
-  }
-
-  // Apply sorting
-  if (params?.sort) {
-    switch (params.sort) {
-      case config.SORT_OPTIONS.POPULAR:
-        filteredGalleries.sort(
-          (a, b) => (b.popularity || 0) - (a.popularity || 0)
-        );
-        break;
-      case config.SORT_OPTIONS.NEW:
-        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
-        break;
-      case config.SORT_OPTIONS.HOT:
-        // Hot = combination of recent + popular
-        filteredGalleries.sort((a, b) => {
-          const aScore =
-            (a.popularity || 0) * 0.7 + (a.uploaded / 1000000) * 0.3;
-          const bScore =
-            (b.popularity || 0) * 0.7 + (b.uploaded / 1000000) * 0.3;
-          return bScore - aScore;
-        });
-        break;
-      case config.SORT_OPTIONS.DATE:
-        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
-        break;
-      case config.SORT_OPTIONS.ALPHABETICAL:
-        filteredGalleries.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case config.SORT_OPTIONS.PAGES:
-        filteredGalleries.sort((a, b) => b.pages - a.pages);
-        break;
-      default:
-        // Default to newest first
-        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.sort) queryParams.append("sort", params.sort);
+    if (params?.categories) {
+      params.categories.forEach((cat) => queryParams.append("categories", cat));
     }
-  } else {
-    // Default sort: newest first
-    filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+    if (params?.languages) {
+      params.languages.forEach((lang) => queryParams.append("languages", lang));
+    }
+    if (params?.tags) {
+      params.tags.forEach((tag) => queryParams.append("tags", tag));
+    }
+
+    const response = await fetch(
+      `${baseUrl}/api/galleries?${queryParams.toString()}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn("Failed to fetch galleries from API, using fallback:", error);
+
+    // Fallback to mock data
+    const allGalleries = getMockGalleries();
+    const page = params?.page || 1;
+    const limit = params?.limit || config.GALLERIES_PER_PAGE;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedGalleries = allGalleries.slice(startIndex, endIndex);
+
+    return {
+      galleries: paginatedGalleries,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(allGalleries.length / limit),
+        totalItems: allGalleries.length,
+        hasNext: endIndex < allGalleries.length,
+        hasPrev: page > 1,
+      },
+    };
   }
-
-  // Apply pagination
-  const page = params?.page || 1;
-  const limit = params?.limit || config.GALLERIES_PER_PAGE;
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedGalleries = filteredGalleries.slice(startIndex, endIndex);
-
-  return {
-    galleries: paginatedGalleries,
-    pagination: {
-      currentPage: page,
-      totalPages: Math.ceil(filteredGalleries.length / limit),
-      totalItems: filteredGalleries.length,
-      hasNext: endIndex < filteredGalleries.length,
-      hasPrev: page > 1,
-    },
-  };
 }
 
 // Get individual gallery metadata and generate image URLs
@@ -177,35 +114,23 @@ export async function fetchGalleryDetail(
   hentai_id: string
 ): Promise<GalleryDetail> {
   try {
-    const { collection } = await connectToDatabase();
-    const gallery = await collection.findOne({
-      $or: [
-        { hentai_id: hentai_id },
-        { id: hentai_id },
-        { _id: hentai_id as any },
-      ],
-    });
+    const baseUrl = "";
 
-    if (!gallery) {
-      console.warn(`Gallery not found: ${hentai_id}, using fallback`);
+    const response = await fetch(`${baseUrl}/api/galleries/${hentai_id}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Gallery not found: ${hentai_id}, using fallback`);
+      } else {
+        throw new Error(`API Error: ${response.status}`);
+      }
       return getMockGalleryDetail(hentai_id);
     }
 
-    // Generate image URLs based on pages count
-    const images = Array.from({ length: gallery.pages }, (_, index) =>
-      generateImageUrl(gallery.hentai_id || gallery.id, index + 1)
-    );
-
-    return {
-      ...gallery,
-      id: gallery._id?.toString() || gallery.id,
-      hentai_id:
-        gallery.hentai_id || gallery.id || gallery._id?.toString() || "",
-      images,
-    };
+    return await response.json();
   } catch (error) {
     console.warn(
-      "Failed to fetch gallery metadata from MongoDB, using fallback:",
+      "Failed to fetch gallery detail from API, using fallback:",
       error
     );
     return getMockGalleryDetail(hentai_id);

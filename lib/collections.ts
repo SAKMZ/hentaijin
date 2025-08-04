@@ -1,62 +1,76 @@
-import { getUniqueFieldValues } from './mongodb';
-
 // API functions for getting collection data
+async function fetchCollectionData(
+  type: string,
+  value?: string,
+  page?: number
+) {
+  try {
+    const baseUrl = "";
+
+    let url = `${baseUrl}/api/collections/${type}`;
+    const params = new URLSearchParams();
+
+    if (value) params.append("value", value);
+    if (page) params.append("page", page.toString());
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn(`Failed to fetch ${type} data:`, error);
+    return { values: [], galleries: [], pagination: null };
+  }
+}
+
 export async function getCategories(): Promise<string[]> {
-  return await getUniqueFieldValues('categories');
+  const data = await fetchCollectionData("categories");
+  return data.values || [];
 }
 
 export async function getTags(): Promise<string[]> {
-  return await getUniqueFieldValues('tags');
+  const data = await fetchCollectionData("tags");
+  return data.values || [];
 }
 
 export async function getArtists(): Promise<string[]> {
-  return await getUniqueFieldValues('artists');
+  const data = await fetchCollectionData("artists");
+  return data.values || [];
 }
 
 export async function getCharacters(): Promise<string[]> {
-  return await getUniqueFieldValues('characters');
+  const data = await fetchCollectionData("characters");
+  return data.values || [];
 }
 
 export async function getLanguages(): Promise<string[]> {
-  return await getUniqueFieldValues('languages');
+  const data = await fetchCollectionData("languages");
+  return data.values || [];
 }
 
 // Get galleries by specific field value
 export async function getGalleriesByField(
-  field: 'categories' | 'tags' | 'artists' | 'characters' | 'languages',
+  field: "categories" | "tags" | "artists" | "characters" | "languages",
   value: string,
   page: number = 1,
   limit: number = 25
 ) {
-  const { connectToDatabase } = await import('./mongodb');
-  const { collection } = await connectToDatabase();
-  
-  const skip = (page - 1) * limit;
-  
-  // Create query based on field
-  const query = { [field]: value };
-  
-  const galleries = await collection
-    .find(query)
-    .skip(skip)
-    .limit(limit)
-    .toArray();
-    
-  const totalCount = await collection.countDocuments(query);
-  
+  const data = await fetchCollectionData(field, value, page);
   return {
-    galleries: galleries.map(gallery => ({
-      ...gallery,
-      id: gallery._id?.toString() || gallery.id,
-      hentai_id: gallery.hentai_id || gallery.id || gallery._id?.toString() || '',
-      thumbnail: gallery.thumbnail || `https://cdn.hentaijin.com/${gallery.hentai_id || gallery.id}/01.webp`
-    })),
-    pagination: {
+    galleries: data.galleries || [],
+    pagination: data.pagination || {
       currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
-      totalItems: totalCount,
-      hasNext: skip + limit < totalCount,
-      hasPrev: page > 1,
-    }
+      totalPages: 1,
+      totalItems: 0,
+      hasNext: false,
+      hasPrev: false,
+    },
   };
 }
