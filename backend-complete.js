@@ -42,24 +42,28 @@ let db, galleries;
     }
 
     console.log("🔄 Connecting to MongoDB...");
-    console.log("MongoDB URI:", process.env.MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide credentials
-    
+    console.log(
+      "MongoDB URI:",
+      process.env.MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")
+    ); // Hide credentials
+
     const mongoClient = new MongoClient(process.env.MONGO_URI);
     await mongoClient.connect();
     db = mongoClient.db(process.env.MONGO_DB);
     galleries = db.collection("galleries");
-    
+
     // Test the connection
     await db.admin().ping();
     console.log("✅ Connected to MongoDB successfully");
     console.log(`📁 Using database: ${process.env.MONGO_DB}`);
-    
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
     console.error("💡 Make sure your .env file contains:");
-    console.error("   MONGO_URI=mongodb://username:password@host:port/database");
+    console.error(
+      "   MONGO_URI=mongodb://username:password@host:port/database"
+    );
     console.error("   MONGO_DB=your_database_name");
-    
+
     // Continue without MongoDB - API will return errors
     db = null;
     galleries = null;
@@ -72,9 +76,9 @@ let db, galleries;
 app.get("/api/galleries", async (req, res) => {
   try {
     if (!db || !galleries) {
-      return res.status(503).json({ 
-        error: "Database not connected", 
-        message: "MongoDB connection failed - check server logs" 
+      return res.status(503).json({
+        error: "Database not connected",
+        message: "MongoDB connection failed - check server logs",
       });
     }
 
@@ -120,9 +124,9 @@ app.get("/api/galleries", async (req, res) => {
 app.get("/api/gallery/:id", async (req, res) => {
   try {
     if (!db || !galleries) {
-      return res.status(503).json({ 
-        error: "Database not connected", 
-        message: "MongoDB connection failed - check server logs" 
+      return res.status(503).json({
+        error: "Database not connected",
+        message: "MongoDB connection failed - check server logs",
       });
     }
 
@@ -153,9 +157,9 @@ app.get("/api/gallery/:id", async (req, res) => {
 app.get("/api/search", async (req, res) => {
   try {
     if (!db || !galleries) {
-      return res.status(503).json({ 
-        error: "Database not connected", 
-        message: "MongoDB connection failed - check server logs" 
+      return res.status(503).json({
+        error: "Database not connected",
+        message: "MongoDB connection failed - check server logs",
       });
     }
 
@@ -272,8 +276,14 @@ app.listen(port, () => {
   console.log(`   GET /api/:galleryId/:imageName - Serve images`);
   console.log(`   GET /health - Health check`);
   console.log(`\n💡 Environment check:`);
-  console.log(`   MONGO_URI: ${process.env.MONGO_URI ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   MONGO_DB: ${process.env.MONGO_DB ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   E2_ENDPOINT: ${process.env.E2_ENDPOINT ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   E2_BUCKET: ${process.env.E2_BUCKET ? '✅ Set' : '❌ Missing'}`);
+  console.log(
+    `   MONGO_URI: ${process.env.MONGO_URI ? "✅ Set" : "❌ Missing"}`
+  );
+  console.log(`   MONGO_DB: ${process.env.MONGO_DB ? "✅ Set" : "❌ Missing"}`);
+  console.log(
+    `   E2_ENDPOINT: ${process.env.E2_ENDPOINT ? "✅ Set" : "❌ Missing"}`
+  );
+  console.log(
+    `   E2_BUCKET: ${process.env.E2_BUCKET ? "✅ Set" : "❌ Missing"}`
+  );
 });
