@@ -14,8 +14,8 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   
-  // Use thumbnail from MongoDB or fallback
-  const coverUrl = gallery.thumbnail;
+  // Use thumbnail from MongoDB or generate from CDN
+  const coverUrl = gallery.thumbnail || `http://128.140.78.75/api/${gallery.id}/01.jpg`;
   const fallbackUrl = `https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Gallery+${gallery.id}`;
 
   return (

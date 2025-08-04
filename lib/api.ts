@@ -171,10 +171,10 @@ function hashCode(str: string): number {
 // Utility to generate CDN image URL with zero-padding
 export function generateImageUrl(galleryId: string, imageIndex: number, format = 'jpg'): string {
   const paddedIndex = imageIndex.toString().padStart(2, '0');
-  return `${config.CDN_BASE_URL}/${galleryId}/${paddedIndex}.${format}`;
+  return `${config.CDN_BASE_URL}/api/${galleryId}/${paddedIndex}.${format}`;
 }
 
 // Utility to generate CDN cover URL (first image)
 export function generateCoverUrl(galleryId: string, format = 'jpg'): string {
-  return `${config.CDN_BASE_URL}/${galleryId}/01.${format}`;
+  return `${config.CDN_BASE_URL}/api/${galleryId}/01.${format}`;
 }
