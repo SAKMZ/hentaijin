@@ -12,12 +12,19 @@ interface GalleryPageProps {
   params: { id: string };
 }
 
-// Fetch gallery metadata for SEO
+// Fetch gallery metadata for SEO from your MongoDB API
 async function fetchGalleryMetadata(id: string): Promise<Gallery | null> {
   try {
-    const { galleries } = await fetchGalleries({ search: id });
-    return galleries.find(g => g.id === id) || null;
-  } catch {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75";
+    const response = await fetch(`${API_BASE}/api/gallery/${id}`);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch gallery metadata:', error);
     return null;
   }
 }

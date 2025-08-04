@@ -1,6 +1,6 @@
 export const config = {
-  API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
-  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.domain.com",
+  API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75",
+  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "http://128.140.78.75/api",
   SITE_NAME: "hentaijin",
   SITE_DESCRIPTION: "Modern hentai gallery site",
   GALLERIES_PER_PAGE: 20,
@@ -11,7 +11,7 @@ export const config = {
   
   // New CDN and image configuration
   IMAGES: {
-    FORMAT: 'webp' as const,
+    FORMAT: 'jpg' as const,
     QUALITY: 85,
     MAX_RETRY_ATTEMPTS: 3,
     RETRY_DELAY: 1000, // ms
@@ -20,10 +20,10 @@ export const config = {
     PLACEHOLDER_COLOR: '#1a1a1a',
   },
   
-  // Simple CDN URL structure - cdn.domain.com/12345/1.webp
+  // CDN URL structure - http://128.140.78.75/api/100/01.jpg
   CDN_ENDPOINTS: {
-    GALLERY_IMAGE: '/{galleryId}/{imageIndex}.{format}',
-    GALLERY_COVER: '/{galleryId}/cover.{format}',
+    GALLERY_IMAGE: '/{galleryId}/{paddedIndex}.{format}',
+    GALLERY_COVER: '/{galleryId}/01.{format}', // First image as cover
   },
   
   // Fallback URLs for development/testing

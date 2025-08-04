@@ -21,14 +21,14 @@ async function fetchGalleriesByTag(
   try {
     const decodedTag = decodeURIComponent(tag);
     const result = await searchGalleries(decodedTag, page);
-    
+
     if (!result.galleries || result.galleries.length === 0) {
       return null;
     }
-    
+
     return result;
   } catch (error) {
-    console.error('Failed to fetch galleries by tag:', error);
+    console.error("Failed to fetch galleries by tag:", error);
     return null;
   }
 }
@@ -73,7 +73,8 @@ async function TagContent({
             Tag: <span className="text-pink-500">#{decodedTag}</span>
           </h2>
           <p className="text-gray-400">
-            {pagination?.totalItems || galleries.length} galleries tagged with "{decodedTag}"
+            {pagination?.totalItems || galleries.length} galleries tagged with "
+            {decodedTag}"
           </p>
         </div>
         {pagination && (
@@ -99,15 +100,11 @@ async function TagContent({
             <div className="text-sm text-gray-400">Current Tag</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-pink-500">
-              🔍
-            </div>
+            <div className="text-2xl font-bold text-pink-500">🔍</div>
             <div className="text-sm text-gray-400">Searchable</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-pink-500">
-              📱
-            </div>
+            <div className="text-2xl font-bold text-pink-500">📱</div>
             <div className="text-sm text-gray-400">Mobile Ready</div>
           </div>
         </div>
