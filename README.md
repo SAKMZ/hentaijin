@@ -4,23 +4,26 @@ A modern, mobile-first hentai gallery site built with Next.js 14+ App Router and
 
 ## Features
 
-- 🎨 Modern, clean UI with dark theme
+- 🎨 Modern, clean UI with dark theme (like Hitomi.la)
 - 📱 Mobile-first responsive design
-- ⚡ Fast loading with lazy loading and skeleton loaders
+- ⚡ **Fast ZIP-based gallery loading** - Extract webp images client-side
+- 🗜️ **Client-side ZIP extraction** using fflate (lightweight, ~20KB)
+- 🖼️ **WebP image support** with vertical scrolling gallery viewer
 - 🔍 Advanced search with filters
 - 📄 Pagination for large galleries
 - 🏷️ Tag-based browsing
-- 🖼️ Optimized image handling with Next.js Image
 - ♿ Accessibility features
 - 🔧 TypeScript for type safety
+- 🚀 **Minimal dependencies** for fast load times
 
 ## Tech Stack
 
 - **Framework:** Next.js 14+ (App Router)
 - **Styling:** Tailwind CSS
 - **Language:** TypeScript
-- **Image Optimization:** Next.js Image component
-- **Icons:** Emoji-based (for simplicity)
+- **ZIP Extraction:** fflate (lightweight, client-side)
+- **Image Format:** WebP (optimized for web)
+- **CDN:** Configurable via environment variables
 
 ## Pages
 
@@ -54,13 +57,40 @@ A modern, mobile-first hentai gallery site built with Next.js 14+ App Router and
 
 ## Configuration
 
-Update `lib/config.ts` to configure:
+### Environment Variables
 
-- API endpoints
-- CDN URLs
-- Site metadata
-- Galleries per page
-- Available tags and categories
+Create a `.env.local` file:
+
+```bash
+# CDN Configuration (required)
+NEXT_PUBLIC_CDN_BASE_URL=https://your-cdn-domain.com
+
+# Optional API endpoint
+NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.com
+```
+
+### CDN Structure Expected
+
+Your CDN should serve files in this structure:
+
+```
+https://your-cdn-domain.com/
+├── galleries/
+│   ├── 1.zip          # ZIP file containing webp images (1.webp, 2.webp, etc.)
+│   ├── 2.zip
+│   └── ...
+└── thumbnails/
+    ├── 1.webp         # Thumbnail for gallery 1
+    ├── 2.webp
+    └── ...
+```
+
+### ZIP File Format
+
+Each gallery ZIP should contain:
+- **WebP images** named numerically (1.webp, 2.webp, 3.webp, etc.)
+- Images should be **optimized for web** (recommended: 800-1200px width)
+- **No subdirectories** - all images in the root of the ZIP
 
 ## Project Structure
 

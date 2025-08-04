@@ -4,30 +4,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { Gallery } from "@/types/gallery";
 import { formatNumber } from "@/lib/utils";
+import { getThumbnailUrl } from "@/lib/config";
 
 interface GalleryCardProps {
   gallery: Gallery;
 }
 
 export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
+  const thumbnailUrl = getThumbnailUrl(gallery.id);
+
   return (
     <Link href={`/g/${gallery.id}`} className="group block">
-      <div className="bg-card rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+      <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105">
         {/* Cover Image */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-800">
           <Image
-            src={gallery.coverImage}
+            src={thumbnailUrl}
             alt={gallery.title}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
             className="object-cover transition-transform duration-300 group-hover:scale-110"
             loading="lazy"
-            placeholder="blur"
-            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+            unoptimized
           />
           {/* Language Badge */}
           <div className="absolute top-2 left-2">
-            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full">
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-pink-600 text-white rounded-full">
               {gallery.language}
             </span>
           </div>
@@ -42,12 +44,12 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
         {/* Content */}
         <div className="p-4">
           {/* Title */}
-          <h3 className="font-semibold text-card-foreground text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2 group-hover:text-pink-400 transition-colors">
             {gallery.title}
           </h3>
 
           {/* Artist */}
-          <p className="text-muted-foreground text-xs mb-2 truncate">
+          <p className="text-gray-400 text-xs mb-2 truncate">
             by {gallery.artist}
           </p>
 
@@ -56,22 +58,27 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             {gallery.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full"
+                className="inline-flex items-center px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded-full"
               >
                 {tag}
               </span>
             ))}
             {gallery.tags.length > 3 && (
-              <span className="inline-flex items-center px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full">
+              <span className="inline-flex items-center px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded-full">
                 +{gallery.tags.length - 3}
               </span>
             )}
           </div>
 
-          {/* Page Count */}
-          <p className="text-muted-foreground text-xs">
-            {gallery.totalPages} pages
-          </p>
+          {/* ZIP indicator */}
+          <div className="flex items-center justify-between">
+            <p className="text-gray-400 text-xs">
+              WebP Gallery
+            </p>
+            <div className="text-xs text-pink-400 font-medium">
+              ZIP
+            </div>
+          </div>
         </div>
       </div>
     </Link>
