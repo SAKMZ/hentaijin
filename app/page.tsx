@@ -4,7 +4,7 @@ import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { SortingControls } from "@/components/ui/SortingControls";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { fetchGalleries } from "@/lib/api";
+import { fetchGalleries } from "@/lib/client-api";
 import { config } from "@/lib/config";
 import { GalleryListResponse, SearchParams } from "@/types/gallery";
 
@@ -108,8 +108,6 @@ export default function HomePage({ searchParams }: HomePageProps) {
           manga
         </p>
       </div>
-
-
 
       {/* Sorting Controls */}
       <SortingControls currentSort={sort} />

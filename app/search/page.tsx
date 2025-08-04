@@ -4,7 +4,7 @@ import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { SortingControls } from "@/components/ui/SortingControls";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { fetchGalleries } from "@/lib/api";
+import { fetchGalleries } from "@/lib/client-api";
 import { config } from "@/lib/config";
 import { GalleryListResponse, SearchParams } from "@/types/gallery";
 
@@ -133,8 +133,8 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
           Search <span className="text-pink-500">Galleries</span>
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          Find your favorite hentai galleries by title, tags, artists, characters, and
-          categories
+          Find your favorite hentai galleries by title, tags, artists,
+          characters, and categories
         </p>
       </div>
 
@@ -176,8 +176,8 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
             Start your search
           </h3>
           <p className="text-gray-400 mb-6">
-            Enter a search term to find galleries by title, tags, artists, characters, or
-            categories
+            Enter a search term to find galleries by title, tags, artists,
+            characters, or categories
           </p>
 
           {/* Search Tips */}

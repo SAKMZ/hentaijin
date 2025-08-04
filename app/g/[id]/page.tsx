@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GalleryDetail } from "@/types/gallery";
-import { fetchGalleryDetail } from "@/lib/api";
+import { fetchGalleryDetail } from "@/lib/client-api";
 import { formatUploadDate } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";

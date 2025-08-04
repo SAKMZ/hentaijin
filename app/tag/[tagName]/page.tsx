@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { fetchGalleries } from "@/lib/api";
+import { fetchGalleries } from "@/lib/client-api";
 import { SearchParams } from "@/types/gallery";
 import { config } from "@/lib/config";
 import { GalleryListResponse } from "@/types/gallery";
@@ -26,7 +26,7 @@ async function fetchGalleriesByTag(
       page,
       limit: config.GALLERIES_PER_PAGE,
     };
-    
+
     const result = await fetchGalleries(params);
 
     if (!result.galleries || result.galleries.length === 0) {

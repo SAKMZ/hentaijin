@@ -6,59 +6,11 @@ import {
 } from "@/types/gallery";
 import { config } from "./config";
 
-// Error handling wrapper
-async function apiRequest<T>(url: string): Promise<T> {
-  try {
-    const fetchOptions: RequestInit = {
-      headers: {
-        Accept: "application/json",
-      },
-    };
-
-    // Add Next.js caching if available
-    if (typeof window === "undefined") {
-      (fetchOptions as any).next = { revalidate: 300 };
-    }
-
-    const response = await fetch(url, fetchOptions);
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API Request failed:", error);
-    throw error;
-  }
-}
-
-// Fetch galleries from API route
-async function fetchAllGalleries(): Promise<Gallery[]> {
-  try {
-    const baseUrl = "";
-
-    const response = await fetch(`${baseUrl}/api/galleries`);
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.galleries || [];
-  } catch (error) {
-    console.warn("Failed to fetch galleries from API, using fallback:", error);
-    return getMockGalleries();
-  }
-}
-
 // Get list of galleries with filtering and sorting
 export async function fetchGalleries(
   params?: SearchParams
 ): Promise<GalleryListResponse> {
   try {
-    const baseUrl = "";
-
     // Build query parameters
     const queryParams = new URLSearchParams();
 
@@ -76,9 +28,7 @@ export async function fetchGalleries(
       params.tags.forEach((tag) => queryParams.append("tags", tag));
     }
 
-    const response = await fetch(
-      `${baseUrl}/api/galleries?${queryParams.toString()}`
-    );
+    const response = await fetch(`/api/galleries?${queryParams.toString()}`);
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status}`);
@@ -114,9 +64,7 @@ export async function fetchGalleryDetail(
   hentai_id: string
 ): Promise<GalleryDetail> {
   try {
-    const baseUrl = "";
-
-    const response = await fetch(`${baseUrl}/api/galleries/${hentai_id}`);
+    const response = await fetch(`/api/galleries/${hentai_id}`);
 
     if (!response.ok) {
       if (response.status === 404) {
