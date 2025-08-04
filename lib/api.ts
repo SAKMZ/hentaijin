@@ -150,33 +150,6 @@ export async function searchGalleries(
   });
 }
 
-// Utility to generate CDN image URL with zero-padding
-export function generateImageUrl(
-  hentai_id: string,
-  imageIndex: number,
-  format = config.IMAGES.FORMAT
-): string {
-  const indexStr = imageIndex.toString();
-  const paddedIndex = indexStr.length === 1 ? "0" + indexStr : indexStr;
-  const endpoint = config.CDN_ENDPOINTS.GALLERY_IMAGE.replace(
-    "{hentai_id}",
-    hentai_id
-  ).replace("{paddedIndex}", paddedIndex);
-  return `${config.CDN_BASE_URL}${endpoint}`;
-}
-
-// Utility to generate CDN cover URL (first image)
-export function generateCoverUrl(
-  hentai_id: string,
-  format = config.IMAGES.THUMBNAIL_FORMAT
-): string {
-  const endpoint = config.CDN_ENDPOINTS.GALLERY_COVER.replace(
-    "{hentai_id}",
-    hentai_id
-  );
-  return `${config.CDN_BASE_URL}${endpoint}`;
-}
-
 // Mock data fallbacks for development
 function getMockGalleries(): Gallery[] {
   return [
@@ -191,7 +164,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["english"],
       pages: 24,
       uploaded: Date.now() - 86400000, // 1 day ago
-      thumbnail: generateCoverUrl("100001"),
+      thumbnail: "https://cdn.hentaijin.com/100001/01.webp",
       popularity: 1500,
       favorites: 230,
     },
@@ -206,7 +179,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["japanese"],
       pages: 18,
       uploaded: Date.now() - 172800000, // 2 days ago
-      thumbnail: generateCoverUrl("100002"),
+      thumbnail: "https://cdn.hentaijin.com/100002/01.webp",
       popularity: 2100,
       favorites: 350,
     },
@@ -221,7 +194,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["english"],
       pages: 32,
       uploaded: Date.now() - 259200000, // 3 days ago
-      thumbnail: generateCoverUrl("100003"),
+      thumbnail: "https://cdn.hentaijin.com/100003/01.webp",
       popularity: 890,
       favorites: 120,
     },
@@ -231,9 +204,11 @@ function getMockGalleries(): Gallery[] {
 function getMockGalleryDetail(hentai_id: string): GalleryDetail {
   // Generate mock image URLs
   const mockImageCount = (parseInt(hentai_id) % 30) + 10; // 10-40 images
-  const images = Array.from({ length: mockImageCount }, (_, index) =>
-    generateImageUrl(hentai_id, index + 1)
-  );
+  const images = Array.from({ length: mockImageCount }, (_, index) => {
+    const indexStr = (index + 1).toString();
+    const paddedIndex = indexStr.length === 1 ? "0" + indexStr : indexStr;
+    return `https://cdn.hentaijin.com/${hentai_id}/${paddedIndex}.webp`;
+  });
 
   return {
     id: hentai_id,
@@ -251,20 +226,6 @@ function getMockGalleryDetail(hentai_id: string): GalleryDetail {
     favorites: Math.floor(Math.random() * 1000),
     description: `This is a mock gallery for testing purposes. Gallery ID: ${hentai_id}`,
   };
-}
-
-// Utility function to format upload date
-export function formatUploadDate(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 1) return "1 day ago";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
-  return `${Math.ceil(diffDays / 365)} years ago`;
 }
 
 // Get popular galleries (shortcut function)

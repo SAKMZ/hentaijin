@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Gallery } from "@/types/gallery";
 import { config } from "@/lib/config";
-import { formatUploadDate } from "@/lib/api";
+import { formatUploadDate } from "@/lib/utils";
 import { useState } from "react";
 
 interface GalleryCardProps {
@@ -15,7 +15,6 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // Use thumbnail from MongoDB or fallback to your own server
   const coverUrl = gallery.thumbnail;
   const fallbackUrl = config.FALLBACK_URLS.ERROR;
 
