@@ -11,20 +11,10 @@ export default async function handler(
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { id } = req.query;
-
-  if (!id || typeof id !== "string") {
-    return res.status(400).json({ message: "Gallery ID is required" });
-  }
-
   try {
-    // Forward request to Flask backend
-    const response = await fetch(`${FLASK_BACKEND_URL}/api/galleries/${id}`);
+    const response = await fetch(`${FLASK_BACKEND_URL}/api/stats`);
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return res.status(404).json({ message: "Gallery not found" });
-      }
       throw new Error(`Flask backend error: ${response.status}`);
     }
 

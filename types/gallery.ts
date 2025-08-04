@@ -1,6 +1,6 @@
-// MongoDB Gallery structure with additional fields
+// Gallery structure with enhanced fields
 export interface Gallery {
-  id: string; // MongoDB ObjectId as string
+  id: string; // Database ID as string
   title: string;
   characters: string[];
   tags: string[];
@@ -12,7 +12,8 @@ export interface Gallery {
   thumbnail: string; // Full CDN URL
   popularity?: number; // For sorting by popularity
   favorites?: number; // Favorite count
-  
+  rating?: number; // Rating (1-10)
+
   // Legacy field for backward compatibility
   hentai_id: string; // Maps to id field
 }
@@ -52,7 +53,7 @@ export interface SearchResponse extends GalleryResponse {
 
 // API Response for individual gallery with images and detailed metadata
 export interface GalleryDetail {
-  id: string; // MongoDB ObjectId as string
+  id: string; // Database ID as string
   title: string;
   characters: string[];
   tags: string[];
@@ -61,11 +62,13 @@ export interface GalleryDetail {
   languages: string[];
   pages: number;
   uploaded: number; // Unix timestamp
-  images: string[]; // Full CDN URLs like ["cdn.hentaijin.com/12345/01.webp", ...]
+  images: string[]; // Full CDN URLs
+  thumbnail: string; // Cover image URL
   popularity?: number;
   favorites?: number;
+  rating?: number; // Rating (1-10)
   description?: string;
-  
+
   // Legacy field for backward compatibility
   hentai_id: string; // Maps to id field
 }
@@ -84,4 +87,20 @@ export interface SearchParams {
   categories?: string[];
   languages?: string[];
   tags?: string[];
+  characters?: string[];
+  artists?: string[];
+
+  // Advanced search parameters
+  includeAny?: string[];
+  includeAll?: string[];
+  exclude?: string[];
+  minPages?: number;
+  maxPages?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  minRating?: number;
+  maxRating?: number;
+  minFavorites?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }

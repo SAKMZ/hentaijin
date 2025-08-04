@@ -107,10 +107,15 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             </p>
           )}
 
-          {/* Upload date */}
-          <p className="text-gray-400 text-xs mb-2">
-            {formatUploadDate(gallery.uploaded)}
-          </p>
+          {/* Upload date and rating */}
+          <div className="flex justify-between items-center text-xs text-gray-400 mb-2">
+            <span>{formatUploadDate(gallery.uploaded)}</span>
+            {gallery.rating && (
+              <span className="flex items-center gap-1">
+                <span>⭐</span> {gallery.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1 mb-2">

@@ -1,13 +1,11 @@
-// API functions for getting collection data
+// API functions for getting collection data via Flask backend
 async function fetchCollectionData(
   type: string,
   value?: string,
   page?: number
 ) {
   try {
-    const baseUrl = "";
-
-    let url = `${baseUrl}/api/collections/${type}`;
+    let url = `/api/collections/${type}`;
     const params = new URLSearchParams();
 
     if (value) params.append("value", value);

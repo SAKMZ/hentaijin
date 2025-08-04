@@ -13,7 +13,11 @@ const getEnvVar = (key: string, defaultValue: string): string => {
 };
 
 export const config = {
-  // CDN Configuration
+  // API Configuration
+  API_BASE_URL: getEnvVar(
+    "NEXT_PUBLIC_API_BASE_URL",
+    "https://api.hentaijin.com"
+  ),
   CDN_BASE_URL: getEnvVar(
     "NEXT_PUBLIC_CDN_BASE_URL",
     "https://cdn.hentaijin.com"
@@ -25,16 +29,22 @@ export const config = {
     "Modern hentai gallery site - Browse thousands of doujinshi and manga",
   GALLERIES_PER_PAGE: 25,
 
+  // API Endpoints
+  API_ENDPOINTS: {
+    // Individual gallery metadata
+    GALLERY_METADATA: "/{hentai_id}/metadata",
+    // Search galleries
+    SEARCH: "/search",
+    // Browse by category, tag, artist, etc.
+    BROWSE: "/browse",
+  },
+
   // CDN Endpoints
   CDN_ENDPOINTS: {
-    // Main database with all galleries metadata
-    DB_JSON: "/db.json",
     // Individual gallery images
-    GALLERY_IMAGE: "/{hentai_id}/{paddedIndex}.webp",
-    // Individual gallery cover (first image)
-    GALLERY_COVER: "/{hentai_id}/01.webp",
-    // Individual gallery metadata
-    GALLERY_METADATA: "/{hentai_id}/metadata.json",
+    GALLERY_IMAGE: "/{hentai_id}/image",
+    // Individual gallery by ID
+    GALLERY: "/{hentai_id}",
   },
 
   // Image configuration

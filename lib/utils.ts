@@ -12,18 +12,20 @@ export function formatUploadDate(timestamp: number): string {
   return `${Math.ceil(diffDays / 365)} years ago`;
 }
 
-// Utility to generate CDN image URL with zero-padding
+// Utility to generate CDN image URL
 export function generateImageUrl(
   hentai_id: string,
-  imageIndex: number,
-  format = "webp"
+  imageIndex: number
 ): string {
-  const indexStr = imageIndex.toString();
-  const paddedIndex = indexStr.length === 1 ? "0" + indexStr : indexStr;
-  return `https://cdn.hentaijin.com/${hentai_id}/${paddedIndex}.${format}`;
+  return `https://cdn.hentaijin.com/${hentai_id}/image?page=${imageIndex}`;
 }
 
 // Utility to generate CDN cover URL (first image)
-export function generateCoverUrl(hentai_id: string, format = "webp"): string {
-  return `https://cdn.hentaijin.com/${hentai_id}/01.${format}`;
+export function generateCoverUrl(hentai_id: string): string {
+  return `https://cdn.hentaijin.com/${hentai_id}/image?page=1`;
+}
+
+// Utility to generate gallery CDN URL
+export function generateGalleryUrl(hentai_id: string): string {
+  return `https://cdn.hentaijin.com/${hentai_id}`;
 }

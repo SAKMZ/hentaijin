@@ -5,30 +5,21 @@ import {
   SearchParams,
 } from "@/types/gallery";
 import { config } from "./config";
+import { generateImageUrl, generateCoverUrl } from "./utils";
 
 // Get list of galleries with filtering and sorting
 export async function fetchGalleries(
   params?: SearchParams
 ): Promise<GalleryListResponse> {
   try {
-    // Build query parameters
-    const queryParams = new URLSearchParams();
-
-    if (params?.search) queryParams.append("search", params.search);
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
-    if (params?.sort) queryParams.append("sort", params.sort);
-    if (params?.categories) {
-      params.categories.forEach((cat) => queryParams.append("categories", cat));
-    }
-    if (params?.languages) {
-      params.languages.forEach((lang) => queryParams.append("languages", lang));
-    }
-    if (params?.tags) {
-      params.tags.forEach((tag) => queryParams.append("tags", tag));
-    }
-
-    const response = await fetch(`/api/galleries?${queryParams.toString()}`);
+    // Use Flask backend proxy API
+    const response = await fetch("/api/galleries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params || {}),
+    });
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status}`);
@@ -59,26 +50,41 @@ export async function fetchGalleries(
   }
 }
 
-// Get individual gallery metadata and generate image URLs
+// Get individual gallery metadata from external API
 export async function fetchGalleryDetail(
   hentai_id: string
 ): Promise<GalleryDetail> {
   try {
-    const response = await fetch(`/api/galleries/${hentai_id}`);
+    // First try to get metadata from external API
+    const metadataUrl = `${
+      config.API_BASE_URL
+    }${config.API_ENDPOINTS.GALLERY_METADATA.replace(
+      "{hentai_id}",
+      hentai_id
+    )}`;
+    const response = await fetch(metadataUrl);
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`Gallery not found: ${hentai_id}, using fallback`);
-      } else {
-        throw new Error(`API Error: ${response.status}`);
-      }
-      return getMockGalleryDetail(hentai_id);
+      throw new Error(`API Error: ${response.status}`);
     }
 
-    return await response.json();
+    const metadata = await response.json();
+
+    // Generate image URLs based on pages count
+    const images = Array.from({ length: metadata.pages }, (_, index) =>
+      generateImageUrl(hentai_id, index + 1)
+    );
+
+    return {
+      ...metadata,
+      id: metadata.id || hentai_id,
+      hentai_id: metadata.hentai_id || hentai_id,
+      images,
+      thumbnail: generateCoverUrl(hentai_id),
+    };
   } catch (error) {
     console.warn(
-      "Failed to fetch gallery detail from API, using fallback:",
+      "Failed to fetch gallery detail from external API, using fallback:",
       error
     );
     return getMockGalleryDetail(hentai_id);
@@ -112,7 +118,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["english"],
       pages: 24,
       uploaded: Date.now() - 86400000, // 1 day ago
-      thumbnail: "https://cdn.hentaijin.com/100001/01.webp",
+      thumbnail: generateCoverUrl("100001"),
       popularity: 1500,
       favorites: 230,
     },
@@ -127,7 +133,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["japanese"],
       pages: 18,
       uploaded: Date.now() - 172800000, // 2 days ago
-      thumbnail: "https://cdn.hentaijin.com/100002/01.webp",
+      thumbnail: generateCoverUrl("100002"),
       popularity: 2100,
       favorites: 350,
     },
@@ -142,7 +148,7 @@ function getMockGalleries(): Gallery[] {
       languages: ["english"],
       pages: 32,
       uploaded: Date.now() - 259200000, // 3 days ago
-      thumbnail: "https://cdn.hentaijin.com/100003/01.webp",
+      thumbnail: generateCoverUrl("100003"),
       popularity: 890,
       favorites: 120,
     },
@@ -152,11 +158,9 @@ function getMockGalleries(): Gallery[] {
 function getMockGalleryDetail(hentai_id: string): GalleryDetail {
   // Generate mock image URLs
   const mockImageCount = (parseInt(hentai_id) % 30) + 10; // 10-40 images
-  const images = Array.from({ length: mockImageCount }, (_, index) => {
-    const indexStr = (index + 1).toString();
-    const paddedIndex = indexStr.length === 1 ? "0" + indexStr : indexStr;
-    return `https://cdn.hentaijin.com/${hentai_id}/${paddedIndex}.webp`;
-  });
+  const images = Array.from({ length: mockImageCount }, (_, index) =>
+    generateImageUrl(hentai_id, index + 1)
+  );
 
   return {
     id: hentai_id,
@@ -173,6 +177,7 @@ function getMockGalleryDetail(hentai_id: string): GalleryDetail {
     popularity: Math.floor(Math.random() * 5000),
     favorites: Math.floor(Math.random() * 1000),
     description: `This is a mock gallery for testing purposes. Gallery ID: ${hentai_id}`,
+    thumbnail: generateCoverUrl(hentai_id),
   };
 }
 
