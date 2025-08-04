@@ -21,10 +21,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     initialFilters?.query || searchParams.get("q") || ""
   );
   const [selectedLanguage, setSelectedLanguage] = useState(
-    initialFilters?.language || searchParams.get("language") || ""
+    (initialFilters?.languages && initialFilters.languages[0]) ||
+      searchParams.get("language") ||
+      ""
   );
   const [selectedCategory, setSelectedCategory] = useState(
-    initialFilters?.category || searchParams.get("category") || ""
+    (initialFilters?.categories && initialFilters.categories[0]) ||
+      searchParams.get("category") ||
+      ""
   );
 
   const handleSearch = useCallback(
@@ -33,8 +37,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       const filters: SearchFilters = {
         query: query.trim() || undefined,
-        language: selectedLanguage || undefined,
-        category: selectedCategory || undefined,
+        languages: selectedLanguage ? [selectedLanguage] : undefined,
+        categories: selectedCategory ? [selectedCategory] : undefined,
       };
 
       if (onSearch) {
@@ -42,9 +46,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       } else {
         // Navigate to search page with filters
         const params = new URLSearchParams();
-        if (filters.query) params.set("q", filters.query);
-        if (filters.language) params.set("language", filters.language);
-        if (filters.category) params.set("category", filters.category);
+        if (filters.query) params.set("search", filters.query);
+        if (filters.languages && filters.languages[0])
+          params.set("language", filters.languages[0]);
+        if (filters.categories && filters.categories[0])
+          params.set("category", filters.categories[0]);
 
         router.push(`/search?${params.toString()}`);
       }
@@ -101,9 +107,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               className="w-full px-3 py-2 text-sm text-foreground bg-card border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             >
               <option value="">All Languages</option>
-              {config.TAGS.LANGUAGE.map((lang) => (
+              {config.LANGUAGES.map((lang) => (
                 <option key={lang} value={lang}>
-                  {lang}
+                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
                 </option>
               ))}
             </select>
@@ -124,7 +130,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               className="w-full px-3 py-2 text-sm text-foreground bg-card border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             >
               <option value="">All Categories</option>
-              {config.TAGS.CATEGORIES.map((category) => (
+              {config.CATEGORIES.map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
