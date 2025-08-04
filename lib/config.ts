@@ -1,8 +1,7 @@
 export const config = {
   API_BASE_URL:
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75:3000",
-  CDN_BASE_URL:
-    process.env.NEXT_PUBLIC_CDN_BASE_URL || "http://128.140.78.75:3000",
+  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "http://128.140.78.75",
   SITE_NAME: "hentaijin",
   SITE_DESCRIPTION: "Modern hentai gallery site",
   GALLERIES_PER_PAGE: 20,
