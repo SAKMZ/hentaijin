@@ -6,13 +6,21 @@ import {
 } from "@/types/gallery";
 import { config } from "./config";
 
-// Base API URL - update this to match your backend
-const API_BASE = config.API_BASE_URL || "http://localhost:3001";
-
 // Error handling wrapper
 async function apiRequest<T>(url: string): Promise<T> {
   try {
-    const response = await fetch(url);
+    const fetchOptions: RequestInit = {
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    // Add Next.js caching if available
+    if (typeof window === "undefined") {
+      (fetchOptions as any).next = { revalidate: 300 };
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -25,187 +33,299 @@ async function apiRequest<T>(url: string): Promise<T> {
   }
 }
 
-// Get list of galleries
+// Fetch main database with all galleries
+async function fetchAllGalleries(): Promise<Gallery[]> {
+  const url = `${config.CDN_BASE_URL}${config.CDN_ENDPOINTS.DB_JSON}`;
+
+  try {
+    const galleries = await apiRequest<Gallery[]>(url);
+    return galleries;
+  } catch (error) {
+    console.warn("Failed to fetch galleries database, using fallback:", error);
+    return getMockGalleries();
+  }
+}
+
+// Get list of galleries with filtering and sorting
 export async function fetchGalleries(
   params?: SearchParams
 ): Promise<GalleryListResponse> {
-  // If search term provided, use search endpoint
+  const allGalleries = await fetchAllGalleries();
+  let filteredGalleries = [...allGalleries];
+
+  // Apply search filter
   if (params?.search) {
-    return searchGalleries(params.search, params.page);
+    const searchTerm = params.search.toLowerCase();
+    filteredGalleries = filteredGalleries.filter(
+      (gallery) =>
+        gallery.title.toLowerCase().includes(searchTerm) ||
+        gallery.tags.some((tag) => tag.toLowerCase().includes(searchTerm)) ||
+        gallery.artists.some((artist) =>
+          artist.toLowerCase().includes(searchTerm)
+        ) ||
+        gallery.categories.some((category) =>
+          category.toLowerCase().includes(searchTerm)
+        )
+    );
   }
 
-  // Otherwise get all galleries (if your backend supports this)
-  const searchParams = new URLSearchParams();
-  if (params?.page) {
-    searchParams.set("page", params.page.toString());
-  }
-  if (params?.limit) {
-    searchParams.set("limit", params.limit.toString());
+  // Apply category filter
+  if (params?.categories && params.categories.length > 0) {
+    filteredGalleries = filteredGalleries.filter((gallery) =>
+      params.categories!.some(
+        (category) => gallery.categories.indexOf(category) !== -1
+      )
+    );
   }
 
-  const url = `${API_BASE}/api/galleries${
-    searchParams.toString() ? `?${searchParams.toString()}` : ""
-  }`;
-
-  try {
-    const response = await apiRequest<GalleryListResponse>(url);
-    return response;
-  } catch (error) {
-    // Fallback to mock data for development
-    console.warn("API failed, using mock data:", error);
-    return getMockGalleries(params);
+  // Apply language filter
+  if (params?.languages && params.languages.length > 0) {
+    filteredGalleries = filteredGalleries.filter((gallery) =>
+      params.languages!.some(
+        (language) => gallery.languages.indexOf(language) !== -1
+      )
+    );
   }
+
+  // Apply tags filter
+  if (params?.tags && params.tags.length > 0) {
+    filteredGalleries = filteredGalleries.filter((gallery) =>
+      params.tags!.some((tag) => gallery.tags.indexOf(tag) !== -1)
+    );
+  }
+
+  // Apply sorting
+  if (params?.sort) {
+    switch (params.sort) {
+      case config.SORT_OPTIONS.POPULAR:
+        filteredGalleries.sort(
+          (a, b) => (b.popularity || 0) - (a.popularity || 0)
+        );
+        break;
+      case config.SORT_OPTIONS.NEW:
+        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+        break;
+      case config.SORT_OPTIONS.HOT:
+        // Hot = combination of recent + popular
+        filteredGalleries.sort((a, b) => {
+          const aScore =
+            (a.popularity || 0) * 0.7 + (a.uploaded / 1000000) * 0.3;
+          const bScore =
+            (b.popularity || 0) * 0.7 + (b.uploaded / 1000000) * 0.3;
+          return bScore - aScore;
+        });
+        break;
+      case config.SORT_OPTIONS.DATE:
+        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+        break;
+      case config.SORT_OPTIONS.ALPHABETICAL:
+        filteredGalleries.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case config.SORT_OPTIONS.PAGES:
+        filteredGalleries.sort((a, b) => b.pages - a.pages);
+        break;
+      default:
+        // Default to newest first
+        filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+    }
+  } else {
+    // Default sort: newest first
+    filteredGalleries.sort((a, b) => b.uploaded - a.uploaded);
+  }
+
+  // Apply pagination
+  const page = params?.page || 1;
+  const limit = params?.limit || config.GALLERIES_PER_PAGE;
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedGalleries = filteredGalleries.slice(startIndex, endIndex);
+
+  return {
+    galleries: paginatedGalleries,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(filteredGalleries.length / limit),
+      totalItems: filteredGalleries.length,
+      hasNext: endIndex < filteredGalleries.length,
+      hasPrev: page > 1,
+    },
+  };
 }
 
-// Get individual gallery metadata from MongoDB
-export async function fetchGalleryDetail(id: string): Promise<GalleryDetail> {
-  const url = `${API_BASE}/api/gallery/${id}`;
+// Get individual gallery metadata and generate image URLs
+export async function fetchGalleryDetail(
+  hentai_id: string
+): Promise<GalleryDetail> {
+  const metadataUrl = `${
+    config.CDN_BASE_URL
+  }${config.CDN_ENDPOINTS.GALLERY_METADATA.replace("{hentai_id}", hentai_id)}`;
 
   try {
-    const metadata = await apiRequest<Gallery>(url);
+    const metadata = await apiRequest<GalleryDetail>(metadataUrl);
 
-    // Generate image URLs based on totalImages count
-    const images = Array.from({ length: metadata.totalImages }, (_, index) =>
-      generateImageUrl(metadata.id, index + 1)
+    // Generate image URLs based on pages count
+    const images = Array.from({ length: metadata.pages }, (_, index) =>
+      generateImageUrl(hentai_id, index + 1)
     );
 
     return {
-      id: metadata.id,
+      ...metadata,
       images,
     };
   } catch (error) {
-    // Fallback to mock data for development
-    console.warn("API failed, using mock data:", error);
-    return getMockGalleryDetail(id);
+    console.warn("Failed to fetch gallery metadata, using fallback:", error);
+    return getMockGalleryDetail(hentai_id);
   }
 }
 
-// Search galleries using your backend endpoint
+// Search galleries - uses the same logic as fetchGalleries but with search term
 export async function searchGalleries(
   searchTerm: string,
-  page = 1
+  page = 1,
+  additionalParams?: Partial<SearchParams>
 ): Promise<GalleryListResponse> {
-  const url = `${API_BASE}/api/search?q=${encodeURIComponent(searchTerm)}${
-    page > 1 ? `&page=${page}` : ""
-  }`;
-
-  try {
-    const response = await apiRequest<GalleryListResponse>(url);
-    return response;
-  } catch (error) {
-    // Fallback to mock data for development
-    console.warn("Search API failed, using mock data:", error);
-    return getMockGalleries({ search: searchTerm, page });
-  }
-}
-
-// Mock data fallbacks for development
-function getMockGalleries(params?: SearchParams): GalleryListResponse {
-  const mockGalleries: Gallery[] = [
-    {
-      id: "100",
-      title: "Example Hentai Title 1",
-      tags: ["big breasts", "blowjob", "schoolgirl"],
-      language: "english",
-      totalImages: 24,
-      thumbnail: generateCoverUrl("100"),
-    },
-    {
-      id: "101",
-      title: "Another Gallery Title",
-      tags: ["milf", "creampie", "office"],
-      language: "japanese",
-      totalImages: 18,
-      thumbnail: generateCoverUrl("101"),
-    },
-    {
-      id: "102",
-      title: "Third Example Gallery",
-      tags: ["yuri", "schoolgirl", "romance"],
-      language: "english",
-      totalImages: 32,
-      thumbnail: generateCoverUrl("102"),
-    },
-    {
-      id: "103",
-      title: "Fantasy Adventure Hentai",
-      tags: ["fantasy", "elf", "adventure"],
-      language: "korean",
-      totalImages: 28,
-      thumbnail: generateCoverUrl("103"),
-    },
-  ];
-
-  // Simple search filter for mock data
-  let filteredGalleries = mockGalleries;
-  if (params?.search) {
-    const searchTerm = params.search.toLowerCase();
-    filteredGalleries = mockGalleries.filter(
-      (gallery) =>
-        gallery.title.toLowerCase().includes(searchTerm) ||
-        gallery.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
-    );
-  }
-
-  return {
-    galleries: filteredGalleries,
-    pagination: {
-      currentPage: params?.page || 1,
-      totalPages: Math.ceil(filteredGalleries.length / (params?.limit || 20)),
-      totalItems: filteredGalleries.length,
-      hasNext:
-        (params?.page || 1) <
-        Math.ceil(filteredGalleries.length / (params?.limit || 20)),
-      hasPrev: (params?.page || 1) > 1,
-    },
-  };
-}
-
-function getMockGalleryDetail(id: string): GalleryDetail {
-  // Generate mock image URLs using your own server
-  const mockImageCount = (parseInt(id) % 30) + 10; // 10-40 images
-  const images = Array.from({ length: mockImageCount }, (_, index) =>
-    generateImageUrl(id, index + 1)
-  );
-
-  return {
-    id,
-    images,
-  };
-}
-
-// Helper function for consistent hashing
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return hash;
+  return fetchGalleries({
+    search: searchTerm,
+    page,
+    ...additionalParams,
+  });
 }
 
 // Utility to generate CDN image URL with zero-padding
 export function generateImageUrl(
-  galleryId: string,
+  hentai_id: string,
   imageIndex: number,
-  format = "jpg"
+  format = config.IMAGES.FORMAT
 ): string {
-  const paddedIndex = imageIndex.toString().padStart(2, "0");
+  const indexStr = imageIndex.toString();
+  const paddedIndex = indexStr.length === 1 ? "0" + indexStr : indexStr;
   const endpoint = config.CDN_ENDPOINTS.GALLERY_IMAGE.replace(
-    "{galleryId}",
-    galleryId
-  )
-    .replace("{paddedIndex}", paddedIndex)
-    .replace("{format}", format);
+    "{hentai_id}",
+    hentai_id
+  ).replace("{paddedIndex}", paddedIndex);
   return `${config.CDN_BASE_URL}${endpoint}`;
 }
 
 // Utility to generate CDN cover URL (first image)
-export function generateCoverUrl(galleryId: string, format = "jpg"): string {
+export function generateCoverUrl(
+  hentai_id: string,
+  format = config.IMAGES.THUMBNAIL_FORMAT
+): string {
   const endpoint = config.CDN_ENDPOINTS.GALLERY_COVER.replace(
-    "{galleryId}",
-    galleryId
-  ).replace("{format}", format);
+    "{hentai_id}",
+    hentai_id
+  );
   return `${config.CDN_BASE_URL}${endpoint}`;
+}
+
+// Mock data fallbacks for development
+function getMockGalleries(): Gallery[] {
+  return [
+    {
+      hentai_id: "100001",
+      title: "Example Doujinshi Title",
+      tags: ["big breasts", "schoolgirl", "vanilla"],
+      artists: ["Artist Name"],
+      categories: ["Doujinshi"],
+      languages: ["english"],
+      pages: 24,
+      uploaded: Date.now() - 86400000, // 1 day ago
+      thumbnail: generateCoverUrl("100001"),
+      popularity: 1500,
+      favorites: 230,
+    },
+    {
+      hentai_id: "100002",
+      title: "Another Gallery Example",
+      tags: ["milf", "office", "netorare"],
+      artists: ["Another Artist"],
+      categories: ["Manga"],
+      languages: ["japanese"],
+      pages: 18,
+      uploaded: Date.now() - 172800000, // 2 days ago
+      thumbnail: generateCoverUrl("100002"),
+      popularity: 2100,
+      favorites: 350,
+    },
+    {
+      hentai_id: "100003",
+      title: "Third Gallery Sample",
+      tags: ["yuri", "romance", "wholesome"],
+      artists: ["Yuri Artist"],
+      categories: ["Artist CG"],
+      languages: ["english"],
+      pages: 32,
+      uploaded: Date.now() - 259200000, // 3 days ago
+      thumbnail: generateCoverUrl("100003"),
+      popularity: 890,
+      favorites: 120,
+    },
+  ];
+}
+
+function getMockGalleryDetail(hentai_id: string): GalleryDetail {
+  // Generate mock image URLs
+  const mockImageCount = (parseInt(hentai_id) % 30) + 10; // 10-40 images
+  const images = Array.from({ length: mockImageCount }, (_, index) =>
+    generateImageUrl(hentai_id, index + 1)
+  );
+
+  return {
+    hentai_id,
+    title: `Mock Gallery ${hentai_id}`,
+    tags: ["sample", "mock", "test"],
+    artists: ["Mock Artist"],
+    categories: ["Doujinshi"],
+    languages: ["english"],
+    pages: mockImageCount,
+    uploaded: Date.now() - Math.random() * 86400000 * 30, // Random within last 30 days
+    images,
+    popularity: Math.floor(Math.random() * 5000),
+    favorites: Math.floor(Math.random() * 1000),
+    description: `This is a mock gallery for testing purposes. Gallery ID: ${hentai_id}`,
+  };
+}
+
+// Utility function to format upload date
+export function formatUploadDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) return "1 day ago";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
+  return `${Math.ceil(diffDays / 365)} years ago`;
+}
+
+// Get popular galleries (shortcut function)
+export async function fetchPopularGalleries(
+  page = 1
+): Promise<GalleryListResponse> {
+  return fetchGalleries({
+    page,
+    sort: config.SORT_OPTIONS.POPULAR,
+  });
+}
+
+// Get new galleries (shortcut function)
+export async function fetchNewGalleries(
+  page = 1
+): Promise<GalleryListResponse> {
+  return fetchGalleries({
+    page,
+    sort: config.SORT_OPTIONS.NEW,
+  });
+}
+
+// Get hot galleries (shortcut function)
+export async function fetchHotGalleries(
+  page = 1
+): Promise<GalleryListResponse> {
+  return fetchGalleries({
+    page,
+    sort: config.SORT_OPTIONS.HOT,
+  });
 }

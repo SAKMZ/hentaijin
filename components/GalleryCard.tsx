@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Gallery } from "@/types/gallery";
 import { config } from "@/lib/config";
+import { formatUploadDate } from "@/lib/api";
 import { useState } from "react";
 
 interface GalleryCardProps {
@@ -19,7 +20,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const fallbackUrl = config.FALLBACK_URLS.ERROR;
 
   return (
-    <Link href={`/g/${gallery.id}`} className="group block">
+    <Link href={`/g/${gallery.hentai_id}`} className="group block">
       <div className="bg-card rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105">
         {/* Cover Image */}
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-900">
@@ -58,17 +59,36 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
           />
 
-          {/* Language Badge */}
+          {/* Category Badge */}
           <div className="absolute top-2 left-2">
-            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-pink-600 text-white rounded-full">
-              {gallery.language}
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+              {gallery.categories[0] || "Unknown"}
             </span>
           </div>
 
-          {/* Image Count Badge */}
+          {/* Pages Count Badge */}
           <div className="absolute top-2 right-2">
             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-black/70 text-white rounded-full">
-              {gallery.totalImages}
+              {gallery.pages}
+            </span>
+          </div>
+
+          {/* Popularity Badge */}
+          {gallery.popularity && gallery.popularity > 1000 && (
+            <div className="absolute bottom-2 left-2">
+              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-600 text-white rounded-full">
+                🔥{" "}
+                {gallery.popularity > 10000
+                  ? `${Math.floor(gallery.popularity / 1000)}k`
+                  : gallery.popularity}
+              </span>
+            </div>
+          )}
+
+          {/* Language Indicator */}
+          <div className="absolute bottom-2 right-2">
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-600 text-white rounded-full">
+              {gallery.languages[0]?.toUpperCase() || "EN"}
             </span>
           </div>
         </div>
@@ -80,9 +100,17 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             {gallery.title}
           </h3>
 
-          {/* Language */}
-          <p className="text-gray-400 text-xs mb-2 capitalize">
-            {gallery.language}
+          {/* Artists */}
+          {gallery.artists.length > 0 && (
+            <p className="text-pink-400 text-xs mb-2">
+              By: {gallery.artists.slice(0, 2).join(", ")}
+              {gallery.artists.length > 2 && ` +${gallery.artists.length - 2}`}
+            </p>
+          )}
+
+          {/* Upload date */}
+          <p className="text-gray-400 text-xs mb-2">
+            {formatUploadDate(gallery.uploaded)}
           </p>
 
           {/* Tags */}
@@ -102,8 +130,15 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             )}
           </div>
 
-          {/* Image Count */}
-          <p className="text-gray-400 text-xs">{gallery.totalImages} images</p>
+          {/* Stats */}
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <span>{gallery.pages} pages</span>
+            {gallery.favorites && gallery.favorites > 0 && (
+              <span className="flex items-center gap-1">
+                <span>❤️</span> {gallery.favorites}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Link>

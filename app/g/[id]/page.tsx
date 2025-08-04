@@ -3,27 +3,21 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Gallery, GalleryDetail } from "@/types/gallery";
-import { fetchGalleries, fetchGalleryDetail } from "@/lib/api";
-import { formatNumber, formatDate } from "@/lib/utils";
+import { GalleryDetail } from "@/types/gallery";
+import { fetchGalleryDetail, formatUploadDate } from "@/lib/api";
+import { config } from "@/lib/config";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 
 interface GalleryPageProps {
   params: { id: string };
 }
 
-// Fetch gallery metadata for SEO from your MongoDB API
-async function fetchGalleryMetadata(id: string): Promise<Gallery | null> {
+// Fetch gallery metadata for SEO from CDN
+async function fetchGalleryMetadata(
+  hentai_id: string
+): Promise<GalleryDetail | null> {
   try {
-    const API_BASE =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75";
-    const response = await fetch(`${API_BASE}/api/gallery/${id}`);
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json();
+    return await fetchGalleryDetail(hentai_id);
   } catch (error) {
     console.error("Failed to fetch gallery metadata:", error);
     return null;
@@ -38,16 +32,27 @@ export async function generateMetadata({
   if (!gallery) {
     return {
       title: "Gallery Not Found",
+      description: "The requested gallery could not be found.",
     };
   }
 
+  const description = `${gallery.title} - ${
+    gallery.pages
+  } pages - ${gallery.languages.join(", ")} - By ${gallery.artists.join(", ")}`;
+
   return {
-    title: gallery.title,
-    description: `${gallery.title} - ${gallery.totalImages} images - ${gallery.language}`,
+    title: `${gallery.title} | ${config.SITE_NAME}`,
+    description,
     openGraph: {
       title: gallery.title,
-      description: `${gallery.title} - ${gallery.totalImages} images`,
-      images: [{ url: gallery.thumbnail }],
+      description,
+      images: [{ url: gallery.images[0] || "" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: gallery.title,
+      description,
+      images: [gallery.images[0] || ""],
     },
   };
 }
@@ -66,7 +71,7 @@ function SimpleGalleryImage({
     <div className="relative bg-gray-900 rounded-lg overflow-hidden shadow-lg">
       <Image
         src={src}
-        alt={`${alt} - Image ${index + 1}`}
+        alt={`${alt} - Page ${index + 1}`}
         width={800}
         height={1200}
         className="w-full h-auto object-contain"
@@ -82,14 +87,10 @@ function SimpleGalleryImage({
   );
 }
 
-async function GalleryContent({ id }: { id: string }) {
-  // Fetch both gallery metadata and image list
-  const [galleryMetadata, galleryImages] = await Promise.all([
-    fetchGalleryMetadata(id),
-    fetchGalleryDetail(id),
-  ]);
+async function GalleryContent({ hentai_id }: { hentai_id: string }) {
+  const galleryData = await fetchGalleryDetail(hentai_id);
 
-  if (!galleryMetadata || !galleryImages) {
+  if (!galleryData) {
     notFound();
   }
 
@@ -102,8 +103,8 @@ async function GalleryContent({ id }: { id: string }) {
           <div className="flex-shrink-0">
             <div className="relative w-48 aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden shadow-lg mx-auto lg:mx-0">
               <Image
-                src={galleryMetadata.thumbnail}
-                alt={galleryMetadata.title}
+                src={galleryData.images[0] || config.FALLBACK_URLS.ERROR}
+                alt={galleryData.title}
                 fill
                 className="object-cover"
                 priority
@@ -115,40 +116,97 @@ async function GalleryContent({ id }: { id: string }) {
           <div className="flex-1 space-y-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                {galleryMetadata.title}
+                {galleryData.title}
               </h1>
-              <p className="text-xl text-gray-400 capitalize">
-                {galleryMetadata.language}
-              </p>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {galleryData.categories.map((category) => (
+                  <span
+                    key={category}
+                    className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium"
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            {/* Artists */}
+            {galleryData.artists.length > 0 && (
               <div>
-                <div className="text-gray-400">Images</div>
+                <div className="text-sm font-medium text-gray-400 mb-1">
+                  Artists:
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {galleryData.artists.map((artist) => (
+                    <Link
+                      key={artist}
+                      href={`/search?search=${encodeURIComponent(
+                        `artist:"${artist}"`
+                      )}`}
+                      className="inline-flex items-center px-3 py-1 bg-pink-600 text-white rounded-full text-sm hover:bg-pink-700 transition-colors"
+                    >
+                      {artist}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="text-gray-400">Pages</div>
                 <div className="font-semibold text-white">
-                  {galleryMetadata.totalImages}
+                  {galleryData.pages}
                 </div>
               </div>
               <div>
-                <div className="text-gray-400">Language</div>
+                <div className="text-gray-400">Languages</div>
                 <div className="font-semibold text-white capitalize">
-                  {galleryMetadata.language}
+                  {galleryData.languages.join(", ")}
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-400">Uploaded</div>
+                <div className="font-semibold text-white">
+                  {formatUploadDate(galleryData.uploaded)}
                 </div>
               </div>
               <div>
                 <div className="text-gray-400">ID</div>
                 <div className="font-semibold text-white">
-                  {galleryMetadata.id}
+                  {galleryData.hentai_id}
                 </div>
               </div>
             </div>
+
+            {/* Popularity & Favorites */}
+            {(galleryData.popularity || galleryData.favorites) && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                {galleryData.popularity && (
+                  <div>
+                    <div className="text-gray-400">Popularity</div>
+                    <div className="font-semibold text-yellow-400 flex items-center gap-1">
+                      🔥 {galleryData.popularity.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+                {galleryData.favorites && (
+                  <div>
+                    <div className="text-gray-400">Favorites</div>
+                    <div className="font-semibold text-red-400 flex items-center gap-1">
+                      ❤️ {galleryData.favorites.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tags */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-400">Tags:</div>
               <div className="flex flex-wrap gap-2">
-                {galleryMetadata.tags.map((tag) => (
+                {galleryData.tags.map((tag) => (
                   <Link
                     key={tag}
                     href={`/search?search=${encodeURIComponent(tag)}`}
@@ -160,13 +218,28 @@ async function GalleryContent({ id }: { id: string }) {
               </div>
             </div>
 
+            {/* Description */}
+            {galleryData.description && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-400">
+                  Description:
+                </div>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  {galleryData.description}
+                </p>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex flex-wrap gap-4 pt-4">
               <button className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium">
-                Favorite
+                ❤️ Favorite
               </button>
               <button className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">
-                Share
+                📤 Share
+              </button>
+              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                📱 Mobile View
               </button>
             </div>
           </div>
@@ -177,7 +250,7 @@ async function GalleryContent({ id }: { id: string }) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">
-            Gallery Images ({galleryImages.images.length} images)
+            Gallery Images ({galleryData.images.length} pages)
           </h2>
           <div className="text-sm text-gray-400">
             Click images to view full size
@@ -185,23 +258,25 @@ async function GalleryContent({ id }: { id: string }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleryImages.images.map((imageUrl, index) => (
+          {galleryData.images.map((imageUrl, index) => (
             <SimpleGalleryImage
               key={index}
               src={imageUrl}
-              alt={galleryMetadata.title}
+              alt={galleryData.title}
               index={index}
             />
           ))}
         </div>
       </div>
 
-      {/* Related Galleries */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-white">Related Galleries</h3>
-        <p className="text-gray-400">
-          More galleries with similar tags coming soon...
-        </p>
+      {/* Back to Home */}
+      <div className="text-center">
+        <Link
+          href="/"
+          className="inline-flex items-center px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+        >
+          ← Back to Gallery
+        </Link>
       </div>
     </div>
   );
@@ -223,6 +298,11 @@ export default function GalleryPage({ params }: GalleryPageProps) {
                     <SkeletonLoader key={i} className="h-12" />
                   ))}
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <SkeletonLoader key={i} className="h-6 w-16" />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -234,7 +314,7 @@ export default function GalleryPage({ params }: GalleryPageProps) {
         </div>
       }
     >
-      <GalleryContent id={params.id} />
+      <GalleryContent hentai_id={params.id} />
     </Suspense>
   );
 }

@@ -1,28 +1,87 @@
+// Get environment variables safely
+const getEnvVar = (key: string, defaultValue: string): string => {
+  try {
+    return (
+      (typeof window === "undefined" &&
+        typeof global !== "undefined" &&
+        (global as any).process?.env?.[key]) ||
+      defaultValue
+    );
+  } catch {
+    return defaultValue;
+  }
+};
+
 export const config = {
-  API_BASE_URL:
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75:3000",
-  CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL || "http://128.140.78.75",
+  // CDN Configuration
+  CDN_BASE_URL: getEnvVar(
+    "NEXT_PUBLIC_CDN_BASE_URL",
+    "https://cdn.hentaijin.com"
+  ),
+  DOMAIN_URL: getEnvVar("NEXT_PUBLIC_DOMAIN_URL", "https://hentaijin.com"),
+
   SITE_NAME: "hentaijin",
-  SITE_DESCRIPTION: "Modern hentai gallery site",
-  GALLERIES_PER_PAGE: 20,
-  TAGS: {
-    LANGUAGE: ["English", "Japanese", "Chinese", "Korean"],
-    CATEGORIES: ["Manga", "Doujinshi", "CG Set", "Game CG", "Artbook"],
+  SITE_DESCRIPTION:
+    "Modern hentai gallery site - Browse thousands of doujinshi and manga",
+  GALLERIES_PER_PAGE: 25,
+
+  // CDN Endpoints
+  CDN_ENDPOINTS: {
+    // Main database with all galleries metadata
+    DB_JSON: "/db.json",
+    // Individual gallery images
+    GALLERY_IMAGE: "/{hentai_id}/{paddedIndex}.webp",
+    // Individual gallery cover (first image)
+    GALLERY_COVER: "/{hentai_id}/01.webp",
+    // Individual gallery metadata
+    GALLERY_METADATA: "/{hentai_id}/metadata.json",
   },
 
   // Image configuration
   IMAGES: {
-    FORMAT: "jpg" as const,
+    FORMAT: "webp" as const,
+    THUMBNAIL_FORMAT: "webp" as const,
   },
 
-  // CDN URL structure - http://128.140.78.75/api/100/01.jpg
-  CDN_ENDPOINTS: {
-    GALLERY_IMAGE: "/api/{galleryId}/{paddedIndex}.{format}",
-    GALLERY_COVER: "/api/{galleryId}/01.{format}", // First image as cover
+  // Sorting options similar to nhentai
+  SORT_OPTIONS: {
+    POPULAR: "popular",
+    NEW: "new",
+    HOT: "hot",
+    DATE: "date",
+    ALPHABETICAL: "alphabetical",
+    PAGES: "pages",
   },
 
-  // Fallback URLs - use your own server instead of external placeholders
+  // Filter categories
+  CATEGORIES: [
+    "Doujinshi",
+    "Manga",
+    "Artist CG",
+    "Game CG",
+    "Western",
+    "Non-H",
+    "Image Set",
+    "Cosplay",
+    "Asian Porn",
+    "Misc",
+  ],
+
+  LANGUAGES: [
+    "japanese",
+    "english",
+    "chinese",
+    "korean",
+    "spanish",
+    "french",
+    "german",
+    "russian",
+    "other",
+  ],
+
+  // Fallback URLs
   FALLBACK_URLS: {
-    ERROR: "http://128.140.78.75:3000/api/100/01.jpg",
+    ERROR: "https://cdn.hentaijin.com/placeholder/error.webp",
+    LOADING: "https://cdn.hentaijin.com/placeholder/loading.webp",
   },
 } as const;
