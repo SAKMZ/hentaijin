@@ -13,9 +13,9 @@ interface GalleryCardProps {
 export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  
-  // Use thumbnail from MongoDB or generate from CDN
-  const coverUrl = gallery.thumbnail || `http://128.140.78.75/api/${gallery.id}/01.jpg`;
+
+  // Use thumbnail from MongoDB or fallback
+  const coverUrl = gallery.thumbnail;
   const fallbackUrl = `https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Gallery+${gallery.id}`;
 
   return (
@@ -29,7 +29,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
             </div>
           )}
-          
+
           {/* Error State */}
           {imageError && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
@@ -39,14 +39,14 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
               </div>
             </div>
           )}
-          
+
           <Image
             src={imageError ? fallbackUrl : coverUrl}
             alt={gallery.title}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
             className={`object-cover transition-all duration-300 group-hover:scale-110 ${
-              imageLoading ? 'opacity-0' : 'opacity-100'
+              imageLoading ? "opacity-0" : "opacity-100"
             }`}
             loading="lazy"
             onLoad={() => setImageLoading(false)}
@@ -57,21 +57,20 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             placeholder="blur"
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
           />
-          
+
           {/* Language Badge */}
           <div className="absolute top-2 left-2">
             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-pink-600 text-white rounded-full">
               {gallery.language}
             </span>
           </div>
-          
+
           {/* Image Count Badge */}
           <div className="absolute top-2 right-2">
             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-black/70 text-white rounded-full">
               {gallery.totalImages}
             </span>
           </div>
-          
         </div>
 
         {/* Content */}
@@ -104,9 +103,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
           </div>
 
           {/* Image Count */}
-          <p className="text-gray-400 text-xs">
-            {gallery.totalImages} images
-          </p>
+          <p className="text-gray-400 text-xs">{gallery.totalImages} images</p>
         </div>
       </div>
     </Link>

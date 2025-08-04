@@ -1,11 +1,11 @@
-// MongoDB Gallery structure  
+// MongoDB Gallery structure
 export interface Gallery {
-  id: string; // hentai_id from MongoDB
+  id: string;
   title: string;
   tags: string[];
   language: string;
-  totalImages: number; // total_images or pages from MongoDB
-  thumbnail: string; // Generated CDN URL like "http://128.140.78.75/api/100/01.jpg"
+  totalImages: number;
+  thumbnail: string; // Full CDN URL like "cdn.domain.com/12345/cover.webp"
 }
 
 export interface ImageLoadState {
