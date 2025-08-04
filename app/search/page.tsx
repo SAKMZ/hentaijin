@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Metadata } from "next/head";
+import type { Metadata } from "next";
 import { SearchBar } from "@/components/SearchBar";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
