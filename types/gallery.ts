@@ -6,10 +6,19 @@ export interface Gallery {
   tags: string[];
   category: string;
   coverImage: string;
-  images: string[];
   totalPages: number;
   uploadDate: string;
   views: number;
+  // New tokenized image system
+  token?: string; // Placeholder token for dynamic URLs
+  imageFormat?: 'webp' | 'jpg' | 'png'; // Default: webp
+}
+
+export interface ImageLoadState {
+  src: string;
+  loaded: boolean;
+  error: boolean;
+  retryCount: number;
 }
 
 export interface SearchFilters {
@@ -35,4 +44,19 @@ export interface GalleryResponse {
 
 export interface SearchResponse extends GalleryResponse {
   filters: SearchFilters;
+}
+
+// New interfaces for tokenized image system
+export interface ImageTokenConfig {
+  galleryId: string;
+  token: string;
+  imageIndex: number;
+  format?: 'webp' | 'jpg' | 'png';
+}
+
+export interface ImageViewerProps {
+  gallery: Gallery;
+  currentIndex: number;
+  onImageChange: (index: number) => void;
+  onClose: () => void;
 }
