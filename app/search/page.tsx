@@ -133,7 +133,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
           Search <span className="text-pink-500">Galleries</span>
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          Find your favorite hentai galleries by title, tags, artists, and
+          Find your favorite hentai galleries by title, tags, artists, characters, and
           categories
         </p>
       </div>
@@ -146,7 +146,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
               type="text"
               name="search"
               defaultValue={searchTerm}
-              placeholder="Search galleries, tags, artists, categories..."
+              placeholder="Search galleries, tags, artists, characters, categories..."
               className="w-full px-4 py-3 text-white bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
             />
             {/* Preserve sort parameter in search */}
@@ -176,7 +176,7 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
             Start your search
           </h3>
           <p className="text-gray-400 mb-6">
-            Enter a search term to find galleries by title, tags, artists, or
+            Enter a search term to find galleries by title, tags, artists, characters, or
             categories
           </p>
 

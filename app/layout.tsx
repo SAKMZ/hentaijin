@@ -71,6 +71,30 @@ export default function RootLayout({ children }: RootLayoutProps) {
                   >
                     Search
                   </Link>
+                  <Link
+                    href="/categories"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Categories
+                  </Link>
+                  <Link
+                    href="/tags"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Tags
+                  </Link>
+                  <Link
+                    href="/artists"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Artists
+                  </Link>
+                  <Link
+                    href="/characters"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Characters
+                  </Link>
                 </div>
 
                 {/* Mobile Menu Button */}

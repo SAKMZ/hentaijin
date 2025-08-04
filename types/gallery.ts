@@ -1,7 +1,8 @@
-// CDN Gallery structure - similar to nhentai
+// MongoDB Gallery structure with additional fields
 export interface Gallery {
-  hentai_id: string;
+  id: string; // MongoDB ObjectId as string
   title: string;
+  characters: string[];
   tags: string[];
   artists: string[];
   categories: string[];
@@ -11,6 +12,9 @@ export interface Gallery {
   thumbnail: string; // Full CDN URL
   popularity?: number; // For sorting by popularity
   favorites?: number; // Favorite count
+  
+  // Legacy field for backward compatibility
+  hentai_id: string; // Maps to id field
 }
 
 export interface ImageLoadState {
@@ -48,8 +52,9 @@ export interface SearchResponse extends GalleryResponse {
 
 // API Response for individual gallery with images and detailed metadata
 export interface GalleryDetail {
-  hentai_id: string;
+  id: string; // MongoDB ObjectId as string
   title: string;
+  characters: string[];
   tags: string[];
   artists: string[];
   categories: string[];
@@ -60,6 +65,9 @@ export interface GalleryDetail {
   popularity?: number;
   favorites?: number;
   description?: string;
+  
+  // Legacy field for backward compatibility
+  hentai_id: string; // Maps to id field
 }
 
 // API Request/Response interfaces

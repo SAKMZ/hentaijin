@@ -5,6 +5,7 @@ import {
   SearchParams,
 } from "@/types/gallery";
 import { config } from "./config";
+import { connectToDatabase, initializeSampleData } from "./mongodb";
 
 // Error handling wrapper
 async function apiRequest<T>(url: string): Promise<T> {
@@ -33,15 +34,31 @@ async function apiRequest<T>(url: string): Promise<T> {
   }
 }
 
-// Fetch main database with all galleries
+// Fetch main database with all galleries from MongoDB
 async function fetchAllGalleries(): Promise<Gallery[]> {
-  const url = `${config.CDN_BASE_URL}${config.CDN_ENDPOINTS.DB_JSON}`;
-
   try {
-    const galleries = await apiRequest<Gallery[]>(url);
-    return galleries;
+    const { collection } = await connectToDatabase();
+
+    // Initialize sample data if collection is empty
+    await initializeSampleData();
+
+    const galleries = await collection.find({}).toArray();
+
+    // Transform MongoDB documents to Gallery objects
+    return galleries.map((gallery: any) => ({
+      ...gallery,
+      id: gallery._id?.toString() || gallery.id,
+      hentai_id:
+        gallery.hentai_id || gallery.id || gallery._id?.toString() || "",
+      thumbnail:
+        gallery.thumbnail ||
+        `https://cdn.hentaijin.com/${gallery.hentai_id || gallery.id}/01.webp`,
+    }));
   } catch (error) {
-    console.warn("Failed to fetch galleries database, using fallback:", error);
+    console.warn(
+      "Failed to fetch galleries from MongoDB, using fallback:",
+      error
+    );
     return getMockGalleries();
   }
 }
@@ -65,6 +82,9 @@ export async function fetchGalleries(
         ) ||
         gallery.categories.some((category) =>
           category.toLowerCase().includes(searchTerm)
+        ) ||
+        gallery.characters?.some((character) =>
+          character.toLowerCase().includes(searchTerm)
         )
     );
   }
@@ -156,24 +176,38 @@ export async function fetchGalleries(
 export async function fetchGalleryDetail(
   hentai_id: string
 ): Promise<GalleryDetail> {
-  const metadataUrl = `${
-    config.CDN_BASE_URL
-  }${config.CDN_ENDPOINTS.GALLERY_METADATA.replace("{hentai_id}", hentai_id)}`;
-
   try {
-    const metadata = await apiRequest<GalleryDetail>(metadataUrl);
+    const { collection } = await connectToDatabase();
+    const gallery = await collection.findOne({
+      $or: [
+        { hentai_id: hentai_id },
+        { id: hentai_id },
+        { _id: hentai_id as any },
+      ],
+    });
+
+    if (!gallery) {
+      console.warn(`Gallery not found: ${hentai_id}, using fallback`);
+      return getMockGalleryDetail(hentai_id);
+    }
 
     // Generate image URLs based on pages count
-    const images = Array.from({ length: metadata.pages }, (_, index) =>
-      generateImageUrl(hentai_id, index + 1)
+    const images = Array.from({ length: gallery.pages }, (_, index) =>
+      generateImageUrl(gallery.hentai_id || gallery.id, index + 1)
     );
 
     return {
-      ...metadata,
+      ...gallery,
+      id: gallery._id?.toString() || gallery.id,
+      hentai_id:
+        gallery.hentai_id || gallery.id || gallery._id?.toString() || "",
       images,
     };
   } catch (error) {
-    console.warn("Failed to fetch gallery metadata, using fallback:", error);
+    console.warn(
+      "Failed to fetch gallery metadata from MongoDB, using fallback:",
+      error
+    );
     return getMockGalleryDetail(hentai_id);
   }
 }
@@ -222,8 +256,10 @@ export function generateCoverUrl(
 function getMockGalleries(): Gallery[] {
   return [
     {
+      id: "100001",
       hentai_id: "100001",
       title: "Example Doujinshi Title",
+      characters: ["Sakura", "Hinata"],
       tags: ["big breasts", "schoolgirl", "vanilla"],
       artists: ["Artist Name"],
       categories: ["Doujinshi"],
@@ -235,8 +271,10 @@ function getMockGalleries(): Gallery[] {
       favorites: 230,
     },
     {
+      id: "100002",
       hentai_id: "100002",
       title: "Another Gallery Example",
+      characters: ["Tsunade", "Jiraiya"],
       tags: ["milf", "office", "netorare"],
       artists: ["Another Artist"],
       categories: ["Manga"],
@@ -248,8 +286,10 @@ function getMockGalleries(): Gallery[] {
       favorites: 350,
     },
     {
+      id: "100003",
       hentai_id: "100003",
       title: "Third Gallery Sample",
+      characters: ["Yuki", "Moe"],
       tags: ["yuri", "romance", "wholesome"],
       artists: ["Yuri Artist"],
       categories: ["Artist CG"],
@@ -271,8 +311,10 @@ function getMockGalleryDetail(hentai_id: string): GalleryDetail {
   );
 
   return {
+    id: hentai_id,
     hentai_id,
     title: `Mock Gallery ${hentai_id}`,
+    characters: ["Mock Character A", "Mock Character B"],
     tags: ["sample", "mock", "test"],
     artists: ["Mock Artist"],
     categories: ["Doujinshi"],

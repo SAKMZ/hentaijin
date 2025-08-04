@@ -98,24 +98,35 @@ export default function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className="space-y-8">
-      {/* New Menu */}
-      <div className="flex justify-between items-center bg-gray-800 p-4 rounded-lg">
-        <div className="flex space-x-4">
-          <a href="/categories" className="text-white hover:text-pink-500">
-            Categories
-          </a>
-          <a href="/tags" className="text-white hover:text-pink-500">
-            Tags
-          </a>
-          <a href="/languages" className="text-white hover:text-pink-500">
-            Languages
-          </a>
-        </div>
-        <div className="text-white">✨ HD Quality</div>
+      {/* Hero Section */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl md:text-6xl font-bold text-foreground">
+          Welcome to <span className="text-primary">{config.SITE_NAME}</span>
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          Discover and explore thousands of hentai galleries, doujinshi, and
+          manga
+        </p>
       </div>
 
-      {/* Gallery Grid */}
-      <GalleryGrid page={page} sort={sort} />
+
+
+      {/* Sorting Controls */}
+      <SortingControls currentSort={sort} />
+
+      {/* Galleries */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+            {getTitle()}
+          </h2>
+          <div className="text-sm text-muted-foreground">Page {page}</div>
+        </div>
+
+        <Suspense fallback={<GalleryGridSkeleton />}>
+          <GalleryGrid page={page} sort={sort} />
+        </Suspense>
+      </div>
     </div>
   );
 }

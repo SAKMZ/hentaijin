@@ -3,10 +3,9 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "128.140.78.75",
-        port: "3000",
-        pathname: "/api/**",
+        protocol: "https",
+        hostname: "cdn.hentaijin.com",
+        pathname: "/**",
       },
     ],
   },

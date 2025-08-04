@@ -130,14 +130,9 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
             )}
           </div>
 
-          {/* Stats */}
-          <div className="flex justify-between items-center text-xs text-gray-400">
+          {/* Simplified stats */}
+          <div className="text-xs text-gray-400">
             <span>{gallery.pages} pages</span>
-            {gallery.favorites && gallery.favorites > 0 && (
-              <span className="flex items-center gap-1">
-                <span>❤️</span> {gallery.favorites}
-              </span>
-            )}
           </div>
         </div>
       </div>
