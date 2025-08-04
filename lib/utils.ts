@@ -27,7 +27,7 @@ export function generateImageUrl(tokenConfig: ImageTokenConfig): string {
 }
 
 // Generate cover image URL
-export function generateCoverUrl(galleryId: string, token: string, format = config.IMAGES.FORMAT): string {
+export function generateCoverUrl(galleryId: string, token: string, format: 'webp' | 'jpg' | 'png' = config.IMAGES.FORMAT): string {
   // TODO: Replace with actual CDN URL generation
   if (process.env.NODE_ENV === 'development') {
     return `https://via.placeholder.com/300x400/${Math.abs(hashCode(galleryId))}a/ffffff?text=Gallery+${galleryId}+Cover`;

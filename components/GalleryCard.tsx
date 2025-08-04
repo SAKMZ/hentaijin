@@ -16,8 +16,8 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ gallery }) => {
   
   // Generate cover URL with token
   const coverUrl = gallery.coverImage || (gallery.token 
-    ? generateCoverUrl(gallery.id, gallery.token, gallery.imageFormat)
-    : generateCoverUrl(gallery.id, generateDummyToken(gallery.id), gallery.imageFormat)
+    ? generateCoverUrl(gallery.id, gallery.token, gallery.imageFormat || 'webp')
+    : generateCoverUrl(gallery.id, generateDummyToken(gallery.id), gallery.imageFormat || 'webp')
   );
   
   const fallbackUrl = `https://via.placeholder.com/300x400/1a1a1a/ffffff?text=Gallery+${gallery.id}`;
