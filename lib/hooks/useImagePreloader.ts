@@ -137,7 +137,9 @@ export const useImagePreloader = ({
     const cleanup = () => {
       const currentSources = new Set(tokenConfigs.map(generateImageUrl));
       
-      for (const [src] of preloadedImages.current) {
+      // Use Array.from to convert Map keys to array for iteration
+      const existingSources = Array.from(preloadedImages.current.keys());
+      for (const src of existingSources) {
         if (!currentSources.has(src)) {
           preloadedImages.current.delete(src);
         }
