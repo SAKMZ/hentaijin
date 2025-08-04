@@ -217,7 +217,7 @@ app.get("/api/search", async (req, res) => {
 
 // ============= IMAGE SERVING ROUTE (Your Original) =============
 
-// API route to serve image
+// Enhanced API route to serve images with WebP fallback
 app.get("/api/:galleryId/:imageName", async (req, res) => {
   const { galleryId, imageName } = req.params;
 
@@ -226,7 +226,9 @@ app.get("/api/:galleryId/:imageName", async (req, res) => {
     if (galleries) {
       const found = await galleries.findOne({ hentai_id: galleryId });
       if (!found) {
-        console.log(`⚠️  Gallery ${galleryId} not found in database, but serving image anyway (testing mode)`);
+        console.log(
+          `⚠️  Gallery ${galleryId} not found in database, but serving image anyway (testing mode)`
+        );
         // Temporarily disabled: return res.status(404).send("Gallery not found in database");
       } else {
         console.log(`✅ Gallery ${galleryId} found in database`);
@@ -235,25 +237,84 @@ app.get("/api/:galleryId/:imageName", async (req, res) => {
       console.log("⚠️  Serving image without DB check (MongoDB not connected)");
     }
 
-    // Step 2: Try to fetch image from iDrive
-    const key = `${galleryId}/${imageName}`;
-    const stream = s3
-      .getObject({ Bucket: bucket, Key: key })
-      .createReadStream();
+    // Step 2: Determine content type and try to fetch image from iDrive
+    const getContentType = (fileName) => {
+      const ext = fileName.split(".").pop().toLowerCase();
+      switch (ext) {
+        case "webp":
+          return "image/webp";
+        case "jpg":
+        case "jpeg":
+          return "image/jpeg";
+        case "png":
+          return "image/png";
+        case "gif":
+          return "image/gif";
+        default:
+          return "image/jpeg";
+      }
+    };
 
-    stream.on("error", (err) => {
-      console.error(`[S3] ${key}:`, err.message);
-      res.status(404).send("Image not found in storage");
-    });
+    const tryServeImage = async (imagePath) => {
+      const key = `${galleryId}/${imagePath}`;
 
-    stream.pipe(res);
+      try {
+        // Check if object exists first
+        await s3.headObject({ Bucket: bucket, Key: key }).promise();
+
+        // Object exists, stream it
+        const stream = s3
+          .getObject({ Bucket: bucket, Key: key })
+          .createReadStream();
+
+        // Set proper headers
+        res.setHeader("Content-Type", getContentType(imagePath));
+        res.setHeader("Cache-Control", "public, max-age=31536000"); // 1 year cache
+        res.setHeader("ETag", `"${galleryId}-${imagePath}"`);
+
+        stream.on("error", (err) => {
+          console.error(`[S3 Stream] ${key}:`, err.message);
+          if (!res.headersSent) {
+            res.status(404).send("Image not found in storage");
+          }
+        });
+
+        stream.pipe(res);
+        return true;
+      } catch (err) {
+        console.log(`[S3] ${key} not found:`, err.message);
+        return false;
+      }
+    };
+
+    // Try to serve the requested image
+    const served = await tryServeImage(imageName);
+
+    if (!served) {
+      // If WebP was requested and failed, try JPG fallback
+      if (imageName.endsWith(".webp")) {
+        const jpgName = imageName.replace(".webp", ".jpg");
+        console.log(`🔄 Trying JPG fallback: ${jpgName}`);
+        const jpgServed = await tryServeImage(jpgName);
+
+        if (!jpgServed) {
+          console.error(
+            `❌ Both WebP and JPG failed for: ${galleryId}/${imageName}`
+          );
+          return res.status(404).send("Image not found in storage");
+        }
+      } else {
+        console.error(`❌ Image not found: ${galleryId}/${imageName}`);
+        return res.status(404).send("Image not found in storage");
+      }
+    }
   } catch (err) {
     console.error("❌ Unexpected error:", err.message);
     res.status(500).send("Internal server error");
   }
 });
 
-// ============= HEALTH CHECK =============
+// ============= HEALTH CHECK & DEBUG =============
 
 app.get("/health", (req, res) => {
   res.json({
@@ -269,6 +330,70 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Debug endpoint to test image availability
+app.get("/debug/image/:galleryId/:imageName", async (req, res) => {
+  const { galleryId, imageName } = req.params;
+
+  try {
+    const key = `${galleryId}/${imageName}`;
+
+    // Test if image exists in S3
+    const headResult = await s3
+      .headObject({ Bucket: bucket, Key: key })
+      .promise();
+
+    res.json({
+      status: "found",
+      galleryId,
+      imageName,
+      key,
+      contentType: headResult.ContentType,
+      contentLength: headResult.ContentLength,
+      lastModified: headResult.LastModified,
+      etag: headResult.ETag,
+    });
+  } catch (err) {
+    // Try JPG fallback if WebP was requested
+    if (imageName.endsWith(".webp")) {
+      try {
+        const jpgName = imageName.replace(".webp", ".jpg");
+        const jpgKey = `${galleryId}/${jpgName}`;
+        const jpgHead = await s3
+          .headObject({ Bucket: bucket, Key: jpgKey })
+          .promise();
+
+        res.json({
+          status: "found_fallback",
+          requested: { galleryId, imageName },
+          served: { galleryId, imageName: jpgName },
+          key: jpgKey,
+          contentType: jpgHead.ContentType,
+          contentLength: jpgHead.ContentLength,
+          lastModified: jpgHead.LastModified,
+          etag: jpgHead.ETag,
+        });
+      } catch (jpgErr) {
+        res.json({
+          status: "not_found",
+          galleryId,
+          imageName,
+          key: `${galleryId}/${imageName}`,
+          error: err.message,
+          jpgFallbackError: jpgErr.message,
+        });
+      }
+    } else {
+      res.json({
+        status: "not_found",
+        galleryId,
+        imageName,
+        key: `${galleryId}/${imageName}`,
+        error: err.message,
+      });
+    }
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Proxy server running on port ${port}`);
@@ -276,7 +401,12 @@ app.listen(port, () => {
   console.log(`   GET /api/galleries - List galleries`);
   console.log(`   GET /api/gallery/:id - Get gallery metadata`);
   console.log(`   GET /api/search?q=term - Search galleries`);
-  console.log(`   GET /api/:galleryId/:imageName - Serve images`);
+  console.log(
+    `   GET /api/:galleryId/:imageName - Serve images (with WebP→JPG fallback)`
+  );
+  console.log(
+    `   GET /debug/image/:galleryId/:imageName - Debug image availability`
+  );
   console.log(`   GET /health - Health check`);
   console.log(`\n💡 Environment check:`);
   console.log(
@@ -288,5 +418,9 @@ app.listen(port, () => {
   );
   console.log(
     `   E2_BUCKET: ${process.env.E2_BUCKET ? "✅ Set" : "❌ Missing"}`
+  );
+  console.log(`\n🖼️  Image serving: WebP first, JPG fallback`);
+  console.log(
+    `🌐 Frontend should connect to: http://localhost:${port} or http://128.140.78.75:${port}`
   );
 });

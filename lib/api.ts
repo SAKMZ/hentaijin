@@ -81,10 +81,12 @@ export async function fetchGalleryDetail(id: string): Promise<GalleryDetail> {
   try {
     const metadata = await apiRequest<Gallery>(url);
 
-    // Generate image URLs based on totalImages count
-    const images = Array.from({ length: metadata.totalImages }, (_, index) =>
-      generateImageUrl(metadata.id, index + 1)
-    );
+    // Generate image URLs based on totalImages count with WebP optimization
+    const images = Array.from({ length: metadata.totalImages }, (_, index) => {
+      const imageUrls = generateOptimizedImageUrls(metadata.id, index + 1);
+      // Return WebP URL as primary, frontend will handle fallback
+      return imageUrls.webp;
+    });
 
     return {
       id: metadata.id,
@@ -92,7 +94,7 @@ export async function fetchGalleryDetail(id: string): Promise<GalleryDetail> {
     };
   } catch (error) {
     // Fallback to mock data for development
-    console.warn("API failed, using mock data:", error);
+    console.warn("Gallery API failed, using mock data:", error);
     return getMockGalleryDetail(id);
   }
 }

@@ -22,7 +22,7 @@ interface GalleryPageProps {
 async function fetchGalleryMetadata(id: string): Promise<Gallery | null> {
   try {
     const API_BASE =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75";
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75:3000";
     const response = await fetch(`${API_BASE}/api/gallery/${id}`);
 
     if (!response.ok) {
@@ -93,13 +93,10 @@ function EnhancedGalleryImage({
 }
 
 async function GalleryContent({ id }: { id: string }) {
-  // Fetch both gallery metadata and image list
-  const [galleryMetadata, galleryImages] = await Promise.all([
-    fetchGalleryMetadata(id),
-    fetchGalleryDetail(id),
-  ]);
+  // Fetch gallery metadata
+  const galleryMetadata = await fetchGalleryMetadata(id);
 
-  if (!galleryMetadata || !galleryImages) {
+  if (!galleryMetadata) {
     notFound();
   }
 

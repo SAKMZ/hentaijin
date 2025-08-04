@@ -41,6 +41,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Intersection Observer for lazy loading
   useEffect(() => {
     if (priority || loading === "eager") return;
+    if (typeof window === "undefined") return; // Server-side check
 
     const observer = new IntersectionObserver(
       (entries) => {
