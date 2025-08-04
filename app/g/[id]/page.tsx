@@ -4,9 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Gallery, GalleryDetail } from "@/types/gallery";
-import { fetchGalleries, fetchGalleryDetail } from "@/lib/api";
+import {
+  fetchGalleries,
+  fetchGalleryDetail,
+  generateOptimizedImageUrls,
+  generateOptimizedCoverUrls,
+} from "@/lib/api";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 interface GalleryPageProps {
   params: { id: string };
@@ -15,16 +21,17 @@ interface GalleryPageProps {
 // Fetch gallery metadata for SEO from your MongoDB API
 async function fetchGalleryMetadata(id: string): Promise<Gallery | null> {
   try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75";
+    const API_BASE =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://128.140.78.75";
     const response = await fetch(`${API_BASE}/api/gallery/${id}`);
-    
+
     if (!response.ok) {
       return null;
     }
-    
+
     return await response.json();
   } catch (error) {
-    console.error('Failed to fetch gallery metadata:', error);
+    console.error("Failed to fetch gallery metadata:", error);
     return null;
   }
 }
@@ -51,32 +58,36 @@ export async function generateMetadata({
   };
 }
 
-// Simple gallery image component
-function SimpleGalleryImage({
-  src,
+// Enhanced gallery image component with optimization
+function EnhancedGalleryImage({
+  galleryId,
+  imageIndex,
   alt,
-  index,
 }: {
-  src: string;
+  galleryId: string;
+  imageIndex: number;
   alt: string;
-  index: number;
 }) {
+  const imageUrls = generateOptimizedImageUrls(galleryId, imageIndex);
+
   return (
-    <div className="relative bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-      <Image
-        src={src}
-        alt={`${alt} - Image ${index + 1}`}
+    <div className="relative bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group">
+      <OptimizedImage
+        webpSrc={imageUrls.webp}
+        jpgSrc={imageUrls.jpg}
+        alt={`${alt} - Image ${imageIndex}`}
         width={800}
         height={1200}
-        className="w-full h-auto object-contain"
+        className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-300"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         loading="lazy"
-        placeholder="blur"
-        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
       />
       {/* Page Number Overlay */}
-      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
-        {index + 1}
+      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm font-medium">
+        {imageIndex}
       </div>
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
     </div>
   );
 }
@@ -85,7 +96,7 @@ async function GalleryContent({ id }: { id: string }) {
   // Fetch both gallery metadata and image list
   const [galleryMetadata, galleryImages] = await Promise.all([
     fetchGalleryMetadata(id),
-    fetchGalleryDetail(id)
+    fetchGalleryDetail(id),
   ]);
 
   if (!galleryMetadata || !galleryImages) {
@@ -100,13 +111,22 @@ async function GalleryContent({ id }: { id: string }) {
           {/* Cover Image */}
           <div className="flex-shrink-0">
             <div className="relative w-48 aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden shadow-lg mx-auto lg:mx-0">
-              <Image
-                src={galleryMetadata.thumbnail}
-                alt={galleryMetadata.title}
-                fill
-                className="object-cover"
-                priority
-              />
+              {(() => {
+                const coverUrls = generateOptimizedCoverUrls(
+                  galleryMetadata.id
+                );
+                return (
+                  <OptimizedImage
+                    webpSrc={coverUrls.webp}
+                    jpgSrc={coverUrls.jpg}
+                    alt={galleryMetadata.title}
+                    fill
+                    className="object-cover"
+                    priority
+                    sizes="(max-width: 1024px) 192px, 192px"
+                  />
+                );
+              })()}
             </div>
           </div>
 
@@ -125,23 +145,27 @@ async function GalleryContent({ id }: { id: string }) {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-gray-400">Images</div>
-                <div className="font-semibold text-white">{galleryMetadata.totalImages}</div>
+                <div className="font-semibold text-white">
+                  {galleryMetadata.totalImages}
+                </div>
               </div>
               <div>
                 <div className="text-gray-400">Language</div>
-                <div className="font-semibold text-white capitalize">{galleryMetadata.language}</div>
+                <div className="font-semibold text-white capitalize">
+                  {galleryMetadata.language}
+                </div>
               </div>
               <div>
                 <div className="text-gray-400">ID</div>
-                <div className="font-semibold text-white">{galleryMetadata.id}</div>
+                <div className="font-semibold text-white">
+                  {galleryMetadata.id}
+                </div>
               </div>
             </div>
 
             {/* Tags */}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-gray-400">
-                Tags:
-              </div>
+              <div className="text-sm font-medium text-gray-400">Tags:</div>
               <div className="flex flex-wrap gap-2">
                 {galleryMetadata.tags.map((tag) => (
                   <Link
@@ -172,7 +196,7 @@ async function GalleryContent({ id }: { id: string }) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">
-            Gallery Images ({galleryImages.images.length} images)
+            Gallery Images ({galleryMetadata.totalImages} images)
           </h2>
           <div className="text-sm text-gray-400">
             Click images to view full size
@@ -180,12 +204,12 @@ async function GalleryContent({ id }: { id: string }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleryImages.images.map((imageUrl, index) => (
-            <SimpleGalleryImage
-              key={index}
-              src={imageUrl}
+          {Array.from({ length: galleryMetadata.totalImages }, (_, index) => (
+            <EnhancedGalleryImage
+              key={index + 1}
+              galleryId={galleryMetadata.id}
+              imageIndex={index + 1}
               alt={galleryMetadata.title}
-              index={index}
             />
           ))}
         </div>

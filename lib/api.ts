@@ -9,20 +9,37 @@ import { config } from "./config";
 // Base API URL - update this to match your backend
 const API_BASE = config.API_BASE_URL || "http://localhost:3001";
 
-// Error handling wrapper
-async function apiRequest<T>(url: string): Promise<T> {
-  try {
-    const response = await fetch(url);
+// Enhanced error handling wrapper with retry logic
+async function apiRequest<T>(url: string, retries = 2): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "Cache-Control": "public, max-age=300", // 5 minutes cache
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (attempt === retries) {
+        console.error(
+          `API Request failed after ${retries + 1} attempts:`,
+          error
+        );
+        throw error;
+      }
+      // Wait before retry (exponential backoff)
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.pow(2, attempt) * 1000)
+      );
     }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API Request failed:", error);
-    throw error;
   }
+  throw new Error("Max retries exceeded");
 }
 
 // Get list of galleries
@@ -185,7 +202,7 @@ function hashCode(str: string): number {
   return hash;
 }
 
-// Utility to generate CDN image URL with zero-padding
+// Utility to generate CDN image URL with zero-padding and format optimization
 export function generateImageUrl(
   galleryId: string,
   imageIndex: number,
@@ -201,11 +218,33 @@ export function generateImageUrl(
   return `${config.CDN_BASE_URL}${endpoint}`;
 }
 
-// Utility to generate CDN cover URL (first image)
+// Generate optimized image URLs with WebP fallback
+export function generateOptimizedImageUrls(
+  galleryId: string,
+  imageIndex: number
+): { webp: string; jpg: string } {
+  return {
+    webp: generateImageUrl(galleryId, imageIndex, "webp"),
+    jpg: generateImageUrl(galleryId, imageIndex, "jpg"),
+  };
+}
+
+// Utility to generate CDN cover URL (first image) with optimization
 export function generateCoverUrl(galleryId: string, format = "jpg"): string {
   const endpoint = config.CDN_ENDPOINTS.GALLERY_COVER.replace(
     "{galleryId}",
     galleryId
   ).replace("{format}", format);
   return `${config.CDN_BASE_URL}${endpoint}`;
+}
+
+// Generate optimized cover URLs
+export function generateOptimizedCoverUrls(galleryId: string): {
+  webp: string;
+  jpg: string;
+} {
+  return {
+    webp: generateCoverUrl(galleryId, "webp"),
+    jpg: generateCoverUrl(galleryId, "jpg"),
+  };
 }
