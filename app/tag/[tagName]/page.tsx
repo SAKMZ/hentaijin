@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { GalleryCard } from "@/components/GalleryCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { GalleryGridSkeleton } from "@/components/ui/SkeletonLoader";
-import { searchGalleries } from "@/lib/api";
+import { fetchGalleries } from "@/lib/api";
+import { SearchParams } from "@/types/gallery";
 import { config } from "@/lib/config";
 import { GalleryListResponse } from "@/types/gallery";
 
@@ -20,7 +21,13 @@ async function fetchGalleriesByTag(
 ): Promise<GalleryListResponse | null> {
   try {
     const decodedTag = decodeURIComponent(tag);
-    const result = await searchGalleries(decodedTag, page);
+    const params: SearchParams = {
+      search: decodedTag,
+      page,
+      limit: config.GALLERIES_PER_PAGE,
+    };
+    
+    const result = await fetchGalleries(params);
 
     if (!result.galleries || result.galleries.length === 0) {
       return null;
@@ -113,7 +120,7 @@ async function TagContent({
       {/* Gallery Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {galleries.map((gallery) => (
-          <GalleryCard key={gallery.id} gallery={gallery} />
+          <GalleryCard key={gallery.hentai_id} gallery={gallery} />
         ))}
       </div>
 
